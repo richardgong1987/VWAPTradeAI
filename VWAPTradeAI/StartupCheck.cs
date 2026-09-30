@@ -18,15 +18,4 @@ public static class StartupCheck {
 
         return null;
     }
-
-    // The production relay refuses clients without the key, so starting without one is pointless.
-    public static string FindRelayError(RelayEnvironmentModel environment, string accessKey) {
-        if (environment != RelayEnvironmentModel.Production)
-            return null;
-
-        if (string.IsNullOrWhiteSpace(accessKey))
-            return "生产环境（Production）需要访问密钥：请填写「访问密钥」。";
-
-        return null;
-    }
 }

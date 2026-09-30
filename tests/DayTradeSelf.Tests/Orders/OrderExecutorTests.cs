@@ -8,7 +8,7 @@ namespace VWAPTradeAI.Tests.Orders {
     public class OrderExecutorTests {
         private const string OrderLabel = "VWAPTradeAI-label";
 
-        // Quoted right at the signal's close, as if approved the moment it was announced.
+        // Quoted right at the signal's close, as if the next bar opened there with no spread.
         private readonly FakeBroker _broker = new() { Bid = 100.0, Ask = 100.0 };
         private readonly List<(OrderPlanModel Plan, PositionEntryModel Position)> _opened = new();
         private readonly List<PositionCloseModel> _closed = new();
@@ -36,7 +36,7 @@ namespace VWAPTradeAI.Tests.Orders {
         }
 
         [Fact]
-        public void an_approval_after_price_ran_past_the_target_reaches_no_broker() {
+        public void a_signal_whose_target_price_has_already_reached_goes_to_no_broker() {
             // The signal's 2R target is 104; price is already there.
             _broker.Ask = 104.0;
 

@@ -4,7 +4,7 @@ using cAlgo.Robots;
 namespace VWAPTradeAI.Tests {
     // Builds the signal the planner consumes: the level it touched plus the closed bar that hit it.
     // Tests only ever state the bar's close and the pattern's stop; the target comes from those and
-    // the planner's settings (see TestSettings), the entry from the price when it is approved.
+    // the planner's settings (see TestSettings), the entry from the price when the order goes out.
     internal static class TestSignal {
         public static SignalModel Short(double close, double stopLoss) => ForSide(SignalSideModel.Sell, close, stopLoss);
 

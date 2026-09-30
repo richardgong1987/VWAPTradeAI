@@ -20,13 +20,6 @@
        Chart/ drawing, the Bars readers (VwapSeries, SignalDetector) or the Broker/ adapters. -->
   <ItemGroup Label="Behavior under test">
     <Compile Include="..\..\VWAPTradeAI\StartupCheck.cs" Link="StartupCheck.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Approval\ApprovalDesk.cs" Link="Approval\ApprovalDesk.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Approval\DecisionInbox.cs" Link="Approval\DecisionInbox.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Approval\PendingTradeSignals.cs" Link="Approval\PendingTradeSignals.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Approval\TradeApproval.cs" Link="Approval\TradeApproval.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Notifications\RelayEnvironments.cs" Link="Notifications\RelayEnvironments.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Notifications\TradeMessages.cs" Link="Notifications\TradeMessages.cs" />
-    <Compile Include="..\..\VWAPTradeAI\Notifications\TradeNotificationClient.cs" Link="Notifications\TradeNotificationClient.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />

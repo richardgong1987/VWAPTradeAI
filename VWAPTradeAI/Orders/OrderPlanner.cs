@@ -1,17 +1,18 @@
 namespace cAlgo.Robots;
 
-// Turns an approved signal into a sized order plan, or a plan that says why it cannot be ordered:
+// Turns a signal into a sized order plan, or a plan that says why it cannot be ordered:
 //
 //   stop         the pattern's own stop, pushed StopOffsetTicks further out so a wick that only
 //                grazes the level does not take the trade out
 //   take profit  TakeProfitR × the signal's risk (its close to the stop), measured from its close
-//   entry        the market price when the user approves, which may be well after the signal
+//   entry        the market price when the order goes out, as the next bar opens: the spread, or
+//                a gap, away from the signal's close
 //   volume       what loses RiskPct% of equity between the entry and the stop, snapped to the
 //                nearest volume step
 //
-// The stop and the target belong to the signal, so they stay where it put them however long the
-// user takes to decide; only the entry, and with it the size, follows the market. Once price has
-// reached either one, the trade is gone.
+// The stop and the target belong to the signal, so they are measured from its close; only the
+// entry, and with it the size, follows the market. If price has already reached either one, the
+// trade is gone.
 //
 // Pure: it depends only on the ISymbolModel port, never on cAlgo, so it is unit tested.
 public class OrderPlanner {

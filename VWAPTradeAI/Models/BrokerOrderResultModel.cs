@@ -1,7 +1,7 @@
 namespace cAlgo.Robots;
 
 // The broker's answer to a market order: filled, with the new position, or refused, with its error.
-// A refusal is an expected outcome (it goes back to the app as the reason), not an exception.
+// A refusal is an expected outcome (it is logged as the reason no order went out), not an exception.
 public class BrokerOrderResultModel {
     private BrokerOrderResultModel(PositionEntryModel position, string error) {
         Position = position;

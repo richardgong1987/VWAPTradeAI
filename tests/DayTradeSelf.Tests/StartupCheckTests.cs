@@ -31,26 +31,5 @@ namespace VWAPTradeAI.Tests {
             // 两个都错时先报标签：那是更基础的一个。
             Assert.Contains("订单标签", Check(isM5: false, label: ""));
         }
-
-        [Theory]
-        [InlineData(RelayEnvironmentModel.Off)]
-        [InlineData(RelayEnvironmentModel.Local)]
-        public void off_and_local_are_fine_with_or_without_a_key(RelayEnvironmentModel environment) {
-            Assert.Null(StartupCheck.FindRelayError(environment, ""));
-            Assert.Null(StartupCheck.FindRelayError(environment, "myaccesscode"));
-        }
-
-        [Fact]
-        public void production_with_its_key_is_fine() {
-            Assert.Null(StartupCheck.FindRelayError(RelayEnvironmentModel.Production, "myaccesscode"));
-        }
-
-        [Theory]
-        [InlineData("")]
-        [InlineData("   ")]
-        [InlineData(null)]
-        public void production_without_a_key_is_refused(string accessKey) {
-            Assert.Contains("访问密钥", StartupCheck.FindRelayError(RelayEnvironmentModel.Production, accessKey));
-        }
     }
 }

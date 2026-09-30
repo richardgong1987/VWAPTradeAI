@@ -2,7 +2,7 @@ using cAlgo.API;
 
 namespace cAlgo.Robots;
 
-// The marker for a detected signal, drawn when it is announced, whether or not it is ever traded:
+// The marker for a detected signal, drawn whether or not its order goes out:
 // a triangle plus the signal name, below a long's low and above a short's high.
 public class SignalMarkers {
     private const string Prefix = "VWAP_SIGNAL_";

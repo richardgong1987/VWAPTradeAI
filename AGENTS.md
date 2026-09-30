@@ -17,43 +17,23 @@ Once per closed bar:
    `close > daily > weekly`, Sell for `close < daily < weekly`, otherwise None and nothing happens.
 2. **Signal?** A candle pattern for that side touches the daily VWAP (the yellow line):
    `LevelPatternMatcher` with `HanJinSignals26`.
-3. **Pending, not traded.** `SignalMarkers` marks the signal on the chart, then
-   `ApprovalDesk.OnSignal` → `TradeApproval.OnSignal` stores it under a new `signal_id` and sends
-   `trade_opportunity` to the relay. Nothing is ordered; the marker stays whether or not it trades.
-
-The bot carries on, in a backtest too; the decision arrives whenever the user makes it (there is
-no time limit) and is applied on the cBot thread (`BeginInvokeOnMainThread`, or the next
-`OnTick`).
-
-Once per decision (`execute_trade` = Place Trade, `dismiss_trade` = Dismiss, read by
-`ApprovalDesk.ReceiveRelayText` and handed to the cBot thread through `DecisionInbox`):
-
-4. **Consume.** `TradeApproval.Decide` takes the pending signal once; a dismissal, or an unknown
-   or repeated ID, never trades.
-5. **Order gates**, in order: open position on this level, price still between the signal's stop
+3. **Mark.** `SignalMarkers` marks the signal on the chart; the marker stays whether or not the
+   order goes out.
+4. **Order gates**, in order: open position on this level, price still between the signal's stop
    and target, sizing (`OrderPlanner`), broker. There is no time-of-day or weekday gate.
-   `OrderExecutor.TryEnter` returns whether an order went out, and why not. The stop and the
-   target come from the signal; the entry is the ask/bid at that moment, and the size follows
-   from the actual entry-to-stop distance.
-6. **Record:** a traded signal gets a trade CSV row and a `trade_opened` to the app (a refusal
-   sends `trade_rejected`). Its close sends `trade_profit` / `trade_loss` /
-   `trade_breakeven`. The CSV and the close notice are subscribers to
-   `OrderExecutor.PositionOpened` / `PositionClosed`, wired together in `OnStart`.
+   `OrderExecutor.TryEnter` returns whether an order went out, and logs why not. The stop and the
+   target come from the signal; the entry is the ask/bid as the next bar opens, and the size
+   follows from the actual entry-to-stop distance.
+5. **Record:** a trade gets a trade CSV row when it opens and another when it closes. The CSV is
+   a subscriber to `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart`.
 
 ## Rules that protect the strategy
 
 Breaking one of these changes trading results silently, so treat them as fixed:
 
-- **A signal never places an order by itself.** `OrderExecutor.TryEnter` is only ever called from
-  `TradeApproval.Approve`. Don't add another caller; `TradeApprovalTests` guards this.
-- **Relay traffic is handled on the cBot thread.** The link reads on its own threads:
-  `ApprovalDesk.ReceiveRelayText` parses there and hands over through `DecisionInbox` before
-  anything else is touched. Don't switch
-  the link to `cAlgo.API.WebSocketClient`: it only works on the cBot thread, which a backtest
-  holds while it waits for approval. Networking is auxiliary and must never throw into, or block,
-  the strategy.
-- **Relay environments default to Local.** Production (`RelayEnvironments`) reaches the boss's
-  app; never make it the default.
+- **A signal trades at once, and only once.** `OnBar` is the only caller of
+  `OrderExecutor.TryEnter`, with the signal of the bar that just closed. Nothing waits for a
+  person, and the bot has no network traffic.
 - **The signal bar is the last closed bar, `Bars.Count - 2`.** `OnBar()` fires when a new bar
   opens. Never use `Bars.Count - 1` for signal logic.
 - **M5 only.** The strategy is specified on M5. `StartupCheck` stops the bot on any other timeframe.
@@ -78,17 +58,14 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 | `StartupCheck.cs` | Parameter validation. |
 | `Vwap/` | Computing VWAP values: `VwapPeriod`, `VwapCalculator`, plus the reader `VwapSeries`. |
 | `Signals/` | What makes a signal: `VwapStack` (Strong side), `LevelPatternMatcher` (pattern rule tables), `HanJinSignals26`, and the reader `SignalDetector`. |
-| `Approval/` | `PendingTradeSignals` (pending signals by ID, consumed once), `TradeApproval` (the rules), `DecisionInbox` (decisions → cBot thread), `ApprovalDesk` (the facade the Robot calls). |
-| `Notifications/` | `TradeMessages` (the relay JSON), `TradeNotificationClient` (the `ClientWebSocket` link, on its own threads), `RelayEnvironments`. |
 | `Orders/` | `RiskBudget`, `OrderPlanner` (sizing), `OrderExecutor` (gates + placing + trade events). |
 | `Broker/` | The trading boundary: ports `IBroker`, `ISymbolModel`; cAlgo adapters `CAlgoBroker`, `CAlgoSymbolModel`. |
 | `TradeLog/` | Trade CSV (`TradeCsvColumns`, `TradeCsvLogger`, `TradeCsvFile`, `CsvCell`, `TradeResultR`). |
 | `Chart/` | `VwapLines`, `SignalMarkers`. Drawing only. |
 | `Models/` | Every data type, suffixed `Model`. Pure data only. |
 
-The design patterns in use (Composition Root, Adapter, Observer, Facade, Producer–Consumer,
-Strategy as a table, static Factory Method), where each sits and the ones deliberately not used
-are listed in `CLAUDE.md` under "Design patterns". Name a pattern in a `Pattern:` comment on the
+The design patterns in use (Composition Root, Adapter, Observer, Strategy as a table), where each
+sits and the ones deliberately not used are listed in `CLAUDE.md` under "Design patterns". Name a pattern in a `Pattern:` comment on the
 class that plays it; don't add one the code doesn't need.
 
 Conventions:
@@ -149,17 +126,14 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
 - **The test project** (`net10.0`, xUnit) isn't in the solution. It links the pure source files
   with `<Compile Include>`, never a project reference. Link every new pure file there.
 - **Runtime checks** happen in cTrader: build → refresh the bot in cTrader → run it on a demo
-  account, or backtest it, with the relay and the app running → approve in the app → read the Log
-  tab and the CSVs. A backtest never pauses for a signal; an approval enters at the price of that
-  moment.
+  account, or backtest it → read the Log tab and the CSVs.
 
 ## cTrader behaviour worth knowing
 
 - **Parameter defaults:** `[Parameter(DefaultValue = …)]` only affects new instances. Existing
   instances keep their saved values; recreate the instance to see a new default.
 - **Instances:** each running instance (symbol/timeframe) has its own state and its own `OnStart`.
-- **Access rights:** `AccessRights.FullAccess` is required because the bot writes its CSVs and
-  connects to the WebSocket relay.
+- **Access rights:** `AccessRights.FullAccess` is required because the bot writes its CSVs.
   Output goes under `~/Documents`:
   - `trading_reports` for backtests
   - `simulate_trading_reports` for demo

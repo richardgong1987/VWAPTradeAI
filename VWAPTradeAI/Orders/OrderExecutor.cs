@@ -2,19 +2,19 @@ using System;
 
 namespace cAlgo.Robots;
 
-// Turns an approved signal into a market order at the current price, or says which gate stopped
-// it. The gates, in order:
+// Turns a signal into a market order at the current price, or says which gate stopped it. The
+// gates, in order:
 //
 //   no open position on this level → price still between stop and target, and sizing
 //   (OrderPlanner) → broker
 //
-// There is no order window: an approval may trade at any hour the market is open.
+// There is no order window: a signal may trade at any hour the market is open.
 //
-// Its only caller is TradeApproval.Approve: a signal never trades by itself.
+// Its only caller is the Robot's OnBar, for the signal on the bar that just closed.
 //
 // Pattern: Observer. PositionOpened and PositionClosed announce this strategy's trades; the trade
-// CSV and the app notice subscribe in the composition root, so the executor knows
-// none of them. It reaches cTrader only through IBroker, so it is unit tested.
+// CSV subscribes in the composition root, so the executor knows nothing of it. It reaches cTrader
+// only through IBroker, so it is unit tested.
 public class OrderExecutor {
     private const string EntryComment = "ENTRY";
 

@@ -144,7 +144,7 @@ namespace VWAPTradeAI.Tests.Orders {
         public void a_late_long_enters_at_the_current_price_with_the_signals_stop_and_target() {
             OrderPlanner planner = CreatePlanner();
 
-            // Close 100, stop 98: the signal's 2R target is 104. Approved once price is at 101.
+            // Close 100, stop 98: the signal's 2R target is 104. The next bar opens at 101.
             OrderPlanModel plan = planner.CreatePlan(TestSignal.Long(close: 100.0, stopLoss: 98.0), entryPrice: 101.0, accountEquity: 10000.0);
 
             Assert.True(plan.IsValid, plan.RejectReason);
@@ -161,7 +161,7 @@ namespace VWAPTradeAI.Tests.Orders {
         public void a_late_short_enters_at_the_current_price_with_the_signals_stop_and_target() {
             OrderPlanner planner = CreatePlanner();
 
-            // Close 100, stop 102: the signal's 2R target is 96. Approved once price has fallen to 99.
+            // Close 100, stop 102: the signal's 2R target is 96. The next bar opens down at 99.
             OrderPlanModel plan = planner.CreatePlan(TestSignal.Short(close: 100.0, stopLoss: 102.0), entryPrice: 99.0, accountEquity: 10000.0);
 
             Assert.True(plan.IsValid, plan.RejectReason);
