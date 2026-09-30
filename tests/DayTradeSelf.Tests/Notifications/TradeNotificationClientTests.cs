@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Notifications {
+namespace VWAPTradeAI.Tests.Notifications {
     // The cBot's link to the relay, against a real WebSocket server on a free local port.
     public class TradeNotificationClientTests {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);

@@ -3,7 +3,7 @@ using System.IO;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.TradeLog {
+namespace VWAPTradeAI.Tests.TradeLog {
     // What goes into the trade CSV: one row when a position opens, one when it closes. The close row
     // must report the entry's VWAP readings and measure R against the entry's risk distance.
     public class TradeCsvLoggerTests : IDisposable {
@@ -115,7 +115,7 @@ namespace DayTradeSelf.Tests.TradeLog {
         private static PositionCloseModel Close(double closePrice, double netProfit, PositionCloseReasonModel reason) {
             return new PositionCloseModel {
                 PositionId = 7,
-                Label = "DayTradeSelf-label_VWAP",
+                Label = "VWAPTradeAI-label_VWAP",
                 Direction = TradeDirectionModel.Long,
                 EntryTime = EntryTime,
                 EntryPrice = 100.0,

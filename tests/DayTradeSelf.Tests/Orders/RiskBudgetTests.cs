@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Orders {
+namespace VWAPTradeAI.Tests.Orders {
     // How much account currency one trade may lose. Everything about position size follows from it.
     public class RiskBudgetTests {
         [Fact]

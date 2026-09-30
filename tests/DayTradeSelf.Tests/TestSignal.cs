@@ -1,7 +1,7 @@
 using System;
 using cAlgo.Robots;
 
-namespace DayTradeSelf.Tests {
+namespace VWAPTradeAI.Tests {
     // Builds the signal the planner consumes: the level it touched plus the closed bar that hit it.
     // Tests only ever state the bar's close and the pattern's stop; the target comes from those and
     // the planner's settings (see TestSettings), the entry from the price when it is approved.

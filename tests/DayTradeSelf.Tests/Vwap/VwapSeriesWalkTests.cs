@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Vwap {
+namespace VWAPTradeAI.Tests.Vwap {
     // Walks a week of 5-minute bars through the same steps VwapSeries takes, so the period rules
     // and the accumulator are exercised together. The unit tests check each rule in isolation; this
     // catches the case where both are individually right and still produce a wrong chart — which is

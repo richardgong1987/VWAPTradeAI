@@ -2,7 +2,7 @@ using System;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Vwap {
+namespace VWAPTradeAI.Tests.Vwap {
     // The indicator's own periods. In Japan time:
     //   a VWAP day  runs 06:00 -> 06:00 the next morning, every day of the week;
     //   a VWAP week runs Monday 06:00 -> the following Monday 06:00.

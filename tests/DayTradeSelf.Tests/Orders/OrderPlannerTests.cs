@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Orders {
+namespace VWAPTradeAI.Tests.Orders {
     public class OrderPlannerTests {
         // Default symbol is quoted in the account currency: pipSize 0.1 and pipValue 0.1, so one unit
         // loses 0.1 per pip and volume = riskMoney / price distance. Equity 10000 at 1% risks 100.

@@ -67,7 +67,7 @@ public class TradeCsvFile {
         WriteHeader();
     }
 
-    // DayTradeSelfs.csv → DayTradeSelfs.old-20260927-215900.csv, in the same folder.
+    // VWAPTradeAIs.csv → VWAPTradeAIs.old-20260927-215900.csv, in the same folder.
     private static string ArchivePathFor(string filePath, DateTime time) {
         string name = Path.GetFileNameWithoutExtension(filePath) + ".old-" +
                       time.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + Path.GetExtension(filePath);

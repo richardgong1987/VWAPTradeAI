@@ -5,7 +5,7 @@ using System.Text.Json;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Approval {
+namespace VWAPTradeAI.Tests.Approval {
     // The acceptance test for manual trading: a detected signal never places an order by itself.
     // Only an approval for its ID may call TryEnter, and only once, with the original signal.
     public class TradeApprovalTests {

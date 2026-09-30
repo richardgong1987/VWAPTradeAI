@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.TradeLog {
+namespace VWAPTradeAI.Tests.TradeLog {
     // ResultR is measured against the initial risk price distance, so a stop-out is exactly -1.00
     // and a 2R target is exactly +2.00 — round numbers that stay comparable when the exit rule
     // changes (1R / 1.5R / 2R / breakeven). Net profit is not used: commission and swap would turn

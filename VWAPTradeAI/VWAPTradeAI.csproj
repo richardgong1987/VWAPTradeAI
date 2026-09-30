@@ -8,42 +8,42 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="obj\DayTradeSelf.csproj.nuget.dgspec.json" />
-    <Content Include="obj\DayTradeSelf.csproj.nuget.g.props" />
-    <Content Include="obj\DayTradeSelf.csproj.nuget.g.targets" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.AssemblyInfoInputs.cache" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.assets.cache" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.csproj.AssemblyReference.cache" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.csproj.CoreCompileInputs.cache" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.csproj.FileListAbsolute.txt" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.dll" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.GeneratedMSBuildEditorConfig.editorconfig" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.pdb" />
-    <Content Include="obj\Debug\net6.0\DayTradeSelf.sourcelink.json" />
-    <Content Include="obj\Debug\net6.0\refint\DayTradeSelf.dll" />
-    <Content Include="obj\Debug\net6.0\ref\DayTradeSelf.dll" />
+    <Content Include="obj\VWAPTradeAI.csproj.nuget.dgspec.json" />
+    <Content Include="obj\VWAPTradeAI.csproj.nuget.g.props" />
+    <Content Include="obj\VWAPTradeAI.csproj.nuget.g.targets" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.AssemblyInfoInputs.cache" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.assets.cache" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.csproj.AssemblyReference.cache" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.csproj.CoreCompileInputs.cache" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.csproj.FileListAbsolute.txt" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.dll" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.GeneratedMSBuildEditorConfig.editorconfig" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.pdb" />
+    <Content Include="obj\Debug\net6.0\VWAPTradeAI.sourcelink.json" />
+    <Content Include="obj\Debug\net6.0\refint\VWAPTradeAI.dll" />
+    <Content Include="obj\Debug\net6.0\ref\VWAPTradeAI.dll" />
     <Content Include="obj\project.assets.json" />
     <Content Include="obj\project.nuget.cache" />
     <Content Include="obj\project.packagespec.json" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.AssemblyInfoInputs.cache" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.assets.cache" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.csproj.AssemblyReference.cache" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.csproj.CoreCompileInputs.cache" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.csproj.FileListAbsolute.txt" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.dll" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.GeneratedMSBuildEditorConfig.editorconfig" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.pdb" />
-    <Content Include="obj\Release\net6.0\DayTradeSelf.sourcelink.json" />
-    <Content Include="obj\Release\net6.0\refint\DayTradeSelf.dll" />
-    <Content Include="obj\Release\net6.0\ref\DayTradeSelf.dll" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.AssemblyInfoInputs.cache" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.assets.cache" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.csproj.AssemblyReference.cache" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.csproj.CoreCompileInputs.cache" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.csproj.FileListAbsolute.txt" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.dll" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.GeneratedMSBuildEditorConfig.editorconfig" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.pdb" />
+    <Content Include="obj\Release\net6.0\VWAPTradeAI.sourcelink.json" />
+    <Content Include="obj\Release\net6.0\refint\VWAPTradeAI.dll" />
+    <Content Include="obj\Release\net6.0\ref\VWAPTradeAI.dll" />
     <Content Include="obj\rider.project.model.nuget.info" />
     <Content Include="obj\rider.project.restore.info" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="obj\Debug\net6.0\.NETCoreApp,Version=v6.0.AssemblyAttributes.cs" />
-    <Compile Include="obj\Debug\net6.0\DayTradeSelf.AssemblyInfo.cs" />
+    <Compile Include="obj\Debug\net6.0\VWAPTradeAI.AssemblyInfo.cs" />
     <Compile Include="obj\Release\net6.0\.NETCoreApp,Version=v6.0.AssemblyAttributes.cs" />
-    <Compile Include="obj\Release\net6.0\DayTradeSelf.AssemblyInfo.cs" />
+    <Compile Include="obj\Release\net6.0\VWAPTradeAI.AssemblyInfo.cs" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-# DayTradeSelf
+# VWAPTradeAI
 
 A cTrader cBot (C#, cAlgo API, `net6.0`) that finds **VWAP Strong** trading opportunities on
 **M5** charts and trades them **only when you approve them**.
@@ -112,15 +112,15 @@ folder and a fresh file is started; the log says so on start-up.
 Needs the .NET 10 SDK and cTrader desktop.
 
 ```bash
-dotnet build "DayTradeSelf.sln"              # Debug
-dotnet build "DayTradeSelf.sln" -c Release   # Release
+dotnet build "VWAPTradeAI.sln"              # Debug
+dotnet build "VWAPTradeAI.sln" -c Release   # Release
 ./scripts/test.sh                         # Release build + all unit tests
 ```
 
-The build writes `DayTradeSelf.algo` to `DayTradeSelf/bin/<Config>/net6.0/`. Load or refresh it in
+The build writes `VWAPTradeAI.algo` to `VWAPTradeAI/bin/<Config>/net6.0/`. Load or refresh it in
 cTrader, then backtest.
 
-The unit tests (`tests/DayTradeSelf.Tests`, xUnit, `net10.0`) aren't part of the solution. They
+The unit tests (`tests/VWAPTradeAI.Tests`, xUnit, `net10.0`) aren't part of the solution. They
 compile the pure source files directly, so they never need cTrader.
 
 ## Debugging
@@ -132,18 +132,18 @@ Attach Rider to the process cTrader runs the bot in. Step-by-step guide:
 
 | Folder | What's in it |
 | --- | --- |
-| `DayTradeSelf/DayTradeSelf.cs` | The cBot itself: reads parameters and wires the pieces together. |
-| `DayTradeSelf/StartupCheck.cs` | Refuses to start with bad parameters. |
-| `DayTradeSelf/Vwap/` | Computing the daily and weekly VWAP. |
-| `DayTradeSelf/Signals/` | Checks the stack and finds the candle pattern on the key level. |
-| `DayTradeSelf/Approval/` | Pending signals and the manual approval workflow. |
-| `DayTradeSelf/Notifications/` | The relay messages, and the WebSocket link to the relay. |
-| `DayTradeSelf/Orders/` | Risk budget, sizing, stops, placing orders. |
-| `DayTradeSelf/Broker/` | The boundary to cTrader's trading API (orders, positions, symbol facts). |
-| `DayTradeSelf/TradeLog/` | The trade CSV: columns, writing, setting old files aside. |
-| `DayTradeSelf/Chart/` | VWAP lines and signal markers on the chart. |
-| `DayTradeSelf/Models/` | Data types. |
-| `tests/DayTradeSelf.Tests/` | Unit tests for the pure classes. |
+| `VWAPTradeAI/VWAPTradeAI.cs` | The cBot itself: reads parameters and wires the pieces together. |
+| `VWAPTradeAI/StartupCheck.cs` | Refuses to start with bad parameters. |
+| `VWAPTradeAI/Vwap/` | Computing the daily and weekly VWAP. |
+| `VWAPTradeAI/Signals/` | Checks the stack and finds the candle pattern on the key level. |
+| `VWAPTradeAI/Approval/` | Pending signals and the manual approval workflow. |
+| `VWAPTradeAI/Notifications/` | The relay messages, and the WebSocket link to the relay. |
+| `VWAPTradeAI/Orders/` | Risk budget, sizing, stops, placing orders. |
+| `VWAPTradeAI/Broker/` | The boundary to cTrader's trading API (orders, positions, symbol facts). |
+| `VWAPTradeAI/TradeLog/` | The trade CSV: columns, writing, setting old files aside. |
+| `VWAPTradeAI/Chart/` | VWAP lines and signal markers on the chart. |
+| `VWAPTradeAI/Models/` | Data types. |
+| `tests/VWAPTradeAI.Tests/` | Unit tests for the pure classes. |
 | `rustwebsocket/` | The WebSocket relay between the cBot and the app. |
 | `rustapp/` | The desktop app that shows opportunities and sends approvals. |
 

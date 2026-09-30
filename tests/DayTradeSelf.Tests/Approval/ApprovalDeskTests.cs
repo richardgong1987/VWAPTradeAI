@@ -5,7 +5,7 @@ using System.Text.Json;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Approval {
+namespace VWAPTradeAI.Tests.Approval {
     // The Robot's side of manual approval. Nothing waits for the user, in a backtest either, and
     // nothing expires: a decision arriving on the relay's thread is queued and applied later on the
     // cBot thread.

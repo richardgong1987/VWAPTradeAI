@@ -2,7 +2,7 @@ using System;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Notifications {
+namespace VWAPTradeAI.Tests.Notifications {
     // The two relays, defined once. The app (rustapp/src/main.ts) must list the same addresses.
     public class RelayEnvironmentsTests {
         [Fact]

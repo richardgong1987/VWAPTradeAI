@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.TradeLog {
+namespace VWAPTradeAI.Tests.TradeLog {
     // The header and every row come from the same table. These tests pin the schema's shape, and
     // that every row the logger writes is as wide as the header — a row one column short silently
     // shifts every value after it.

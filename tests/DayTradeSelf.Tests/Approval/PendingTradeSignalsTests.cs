@@ -2,7 +2,7 @@ using System;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Approval {
+namespace VWAPTradeAI.Tests.Approval {
     // Each detected signal gets its own ID, and a decision for that ID is honoured at most once,
     // however long after detection it comes.
     public class PendingTradeSignalsTests {

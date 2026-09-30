@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Signals {
+namespace VWAPTradeAI.Tests.Signals {
     // The key level is the daily VWAP — the yellow line on the chart. A candle pattern only becomes
     // a signal when it actually touches that line, and only the candles that form the pattern count:
     // pinbar one, engulfing two, fractal and harami three.

@@ -8,7 +8,7 @@ Working rules for coding agents in this repository. For deeper reference:
 
 ## What this is
 
-`DayTradeSelf` is a cTrader cBot (C#, cAlgo API, `net6.0`) that trades the **VWAP Strong** strategy
+`VWAPTradeAI` is a cTrader cBot (C#, cAlgo API, `net6.0`) that trades the **VWAP Strong** strategy
 (`docs/VWAP_Strong_V2.pdf`) on **M5 only**, on Japan time.
 
 Once per closed bar:
@@ -74,7 +74,7 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 
 | Folder | Holds |
 | --- | --- |
-| `DayTradeSelf.cs` | Composition root: parameters, `OnStart` builds the pipelines and subscribes the trade observers; the lifecycle overrides forward to them. No rules. |
+| `VWAPTradeAI.cs` | Composition root: parameters, `OnStart` builds the pipelines and subscribes the trade observers; the lifecycle overrides forward to them. No rules. |
 | `StartupCheck.cs` | Parameter validation. |
 | `Vwap/` | Computing VWAP values: `VwapPeriod`, `VwapCalculator`, plus the reader `VwapSeries`. |
 | `Signals/` | What makes a signal: `VwapStack` (Strong side), `LevelPatternMatcher` (pattern rule tables), `HanJinSignals26`, and the reader `SignalDetector`. |
@@ -138,13 +138,13 @@ Don't reformat touched code to Allman braces. Name things for what they are (`Or
 ## Build, test, run
 
 ```bash
-dotnet build "DayTradeSelf.sln"                                   # Debug
-dotnet build "DayTradeSelf.sln" -c Release
+dotnet build "VWAPTradeAI.sln"                                   # Debug
+dotnet build "VWAPTradeAI.sln" -c Release
 ./scripts/test.sh                                              # Release build + all unit tests
-dotnet test "tests/DayTradeSelf.Tests/DayTradeSelf.Tests.csproj"     # tests only
+dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
 ```
 
-- **The build output** is `DayTradeSelf/bin/<Config>/net6.0/DayTradeSelf.algo`, which cTrader loads.
+- **The build output** is `VWAPTradeAI/bin/<Config>/net6.0/VWAPTradeAI.algo`, which cTrader loads.
 - **Paths:** spaces in them are intentional; always quote them.
 - **The test project** (`net10.0`, xUnit) isn't in the solution. It links the pure source files
   with `<Compile Include>`, never a project reference. Link every new pure file there.
@@ -165,6 +165,6 @@ dotnet test "tests/DayTradeSelf.Tests/DayTradeSelf.Tests.csproj"     # tests onl
   - `simulate_trading_reports` for demo
   - `release_trading_reports` for live
   
-  The trade CSV is `DayTradeSelfs.csv` by default. If cTrader reports a sync conflict over full
+  The trade CSV is `VWAPTradeAIs.csv` by default. If cTrader reports a sync conflict over full
   access, keep the local source.
 - **Chart objects** persist after the bot stops; nothing clears them in `OnStop`.

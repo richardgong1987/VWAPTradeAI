@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using cAlgo.Robots;
 
-namespace DayTradeSelf.Tests {
+namespace VWAPTradeAI.Tests {
     // Stands in for CAlgoBroker: an account, a quote and positions the test sets directly. It records
     // every order it is asked to place, fills it at the plan's entry unless told to refuse, and
     // closes positions on demand.

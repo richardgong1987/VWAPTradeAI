@@ -1,7 +1,7 @@
 #!/bin/bash
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SOLUTION="$REPO_ROOT/DayTradeSelf.sln"
+SOLUTION="$REPO_ROOT/VWAPTradeAI.sln"
 
 cd $REPO_ROOT
 

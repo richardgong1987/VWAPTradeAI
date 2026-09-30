@@ -3,7 +3,7 @@ using System.Text.Json;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Notifications {
+namespace VWAPTradeAI.Tests.Notifications {
     // The JSON the cBot exchanges with the app through the relay. Field names are the contract
     // with rustapp/src-tauri/src/protocol.rs.
     public class TradeMessagesTests {

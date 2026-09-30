@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Approval {
+namespace VWAPTradeAI.Tests.Approval {
     // Decisions cross from the relay link's thread to the cBot thread, which takes them in order.
     public class DecisionInboxTests {
         private static TradeDecisionModel Approve(string signalId) => new(signalId, isApproved: true);

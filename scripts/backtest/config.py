@@ -85,6 +85,6 @@ def load_config(env_file):
     if not algo_path.exists():
         raise FileNotFoundError(
             f"找不到编译产物：{algo_path}\n"
-            "请先编译 cBot：dotnet build \"DayTradeSelf.sln\" -c Release"
+            "请先编译 cBot：dotnet build \"VWAPTradeAI.sln\" -c Release"
         )
     return Config(values)

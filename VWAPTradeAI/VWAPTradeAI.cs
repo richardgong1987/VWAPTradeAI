@@ -11,7 +11,7 @@ namespace cAlgo.Robots;
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class VWAPTradeAI : Robot
 {
-    [Parameter("订单标签", DefaultValue = "DayTradeSelf-label")]
+    [Parameter("订单标签", DefaultValue = "VWAPTradeAI-label")]
     public string OrderLabel { get; set; }
 
     [Parameter("风险%", DefaultValue = 1, MinValue = 0)]
@@ -39,7 +39,7 @@ public class VWAPTradeAI : Robot
     [Parameter("debug调试", DefaultValue = false, Group = "开发调试")]
     public bool IsDebug { get; set; }
 
-    [Parameter("输出文件名", DefaultValue = "DayTradeSelfs.csv", Group = "开发调试")]
+    [Parameter("输出文件名", DefaultValue = "VWAPTradeAIs.csv", Group = "开发调试")]
     public string FileName { get; set; }
 
     private VwapSeries _vwapSeries;

@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Vwap {
+namespace VWAPTradeAI.Tests.Vwap {
     // VWAP = Σ(hlc3 × volume) / Σ(volume), restarted on each new period. The calculator is fed one
     // bar at a time and the caller says where a period starts (VwapPeriod decides that from the bar
     // time), so these tests state it directly.

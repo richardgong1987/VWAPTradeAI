@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Orders {
+namespace VWAPTradeAI.Tests.Orders {
     // Checks the lot size OrderPlanner computes for realistic broker symbol settings.
     // Sizing rule: riskMoney = equity × the level's RiskPct%, units = riskMoney / (stop pips ×
     // pip value per unit), snapped to the nearest volume step, lots = units / lot size.

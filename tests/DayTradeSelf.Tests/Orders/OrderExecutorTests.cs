@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Orders {
+namespace VWAPTradeAI.Tests.Orders {
     // The order gates, in order: an open position on the level, price and sizing, the broker.
     // Each one stops the order and says why; only an order that passes all of them is announced.
     public class OrderExecutorTests {
-        private const string OrderLabel = "DayTradeSelf-label";
+        private const string OrderLabel = "VWAPTradeAI-label";
 
         // Quoted right at the signal's close, as if approved the moment it was announced.
         private readonly FakeBroker _broker = new() { Bid = 100.0, Ask = 100.0 };
@@ -56,7 +56,7 @@ namespace DayTradeSelf.Tests.Orders {
 
             Assert.True(isOrdered, rejectReason);
             var order = Assert.Single(_broker.Orders);
-            Assert.Equal("DayTradeSelf-label_VWAP", order.Label);
+            Assert.Equal("VWAPTradeAI-label_VWAP", order.Label);
             Assert.Equal("ENTRY", order.Comment);
             var opened = Assert.Single(_opened);
             Assert.Same(signal, opened.Plan.Signal);
@@ -65,7 +65,7 @@ namespace DayTradeSelf.Tests.Orders {
 
         [Fact]
         public void a_level_that_already_has_a_position_takes_no_second_one() {
-            _broker.OpenLabels.Add("DayTradeSelf-label_VWAP");
+            _broker.OpenLabels.Add("VWAPTradeAI-label_VWAP");
 
             bool isOrdered = Executor().TryEnter(Signal(), out string rejectReason);
 
@@ -97,9 +97,9 @@ namespace DayTradeSelf.Tests.Orders {
         }
 
         [Theory]
-        [InlineData("DayTradeSelf-label_VWAP", true)]
+        [InlineData("VWAPTradeAI-label_VWAP", true)]
         [InlineData("OtherBot_VWAP", false)] // another cBot on the same symbol
-        [InlineData("DayTradeSelf-label", false)] // no level suffix: not one of ours
+        [InlineData("VWAPTradeAI-label", false)] // no level suffix: not one of ours
         [InlineData("", false)] // a manual trade
         public void only_this_strategys_positions_are_announced_as_closed(string label, bool isAnnounced) {
             Executor();

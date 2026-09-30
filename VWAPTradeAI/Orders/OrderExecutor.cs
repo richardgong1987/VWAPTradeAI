@@ -22,7 +22,7 @@ public class OrderExecutor {
     private readonly OrderPlanner _planner;
     private readonly Action<string> _log;
 
-    // Labels are "{OrderLabel}_{level name}", e.g. "DayTradeSelf-label_VWAP". The level suffix gives
+    // Labels are "{OrderLabel}_{level name}", e.g. "VWAPTradeAI-label_VWAP". The level suffix gives
     // each level its own position; the prefix tells this instance's positions apart from manual
     // ones and from other cBots on the same symbol.
     private readonly string _labelPrefix;

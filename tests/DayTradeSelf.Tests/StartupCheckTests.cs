@@ -1,10 +1,10 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests {
+namespace VWAPTradeAI.Tests {
     // 启动校验。这些规则一旦失效，cBot 会带着一套算错的参数安静跑完整个回测 —— 所以宁可停下来。
     public class StartupCheckTests {
-        private static string Check(bool isM5 = true, string label = "DayTradeSelf-label") =>
+        private static string Check(bool isM5 = true, string label = "VWAPTradeAI-label") =>
             StartupCheck.FindError(isM5, "m5", label);
 
         [Fact]

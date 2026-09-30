@@ -3,7 +3,7 @@ using System.IO;
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.TradeLog {
+namespace VWAPTradeAI.Tests.TradeLog {
     // How the trade CSV behaves as a file across runs. Demo and live files accumulate trades, so
     // what matters most is that an existing file is never overwritten when its columns differ.
     public class TradeCsvFileTests : IDisposable {

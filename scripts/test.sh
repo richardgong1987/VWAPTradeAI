@@ -11,8 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-SOLUTION="DayTradeSelf.sln"
-TEST_PROJECT="tests/DayTradeSelf.Tests/DayTradeSelf.Tests.csproj"
+SOLUTION="VWAPTradeAI.sln"
+TEST_PROJECT="tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"
 
 echo "==> Building cBot ($SOLUTION)"
 dotnet build "$SOLUTION" -c Release

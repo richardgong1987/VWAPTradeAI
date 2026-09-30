@@ -1,6 +1,6 @@
 using cAlgo.Robots;
 
-namespace DayTradeSelf.Tests {
+namespace VWAPTradeAI.Tests {
     // Settings for tests: 1% risk, 2R take profit and no stop offset, so what is under test is only
     // what the test states.
     internal static class TestSettings {

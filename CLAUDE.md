@@ -53,7 +53,7 @@ Everything runs on Japan time (`[Robot(TimeZone = TimeZones.TokyoStandardTime)]`
 periods (`Vwap/VwapPeriod.cs`): the daily VWAP accumulates 06:00 → 06:00 the next morning, the
 weekly from Monday 06:00. Every bar accumulates, so a VWAP value is never blank.
 
-`DayTradeSelf.cs` is the Robot lifecycle shell and the composition root. `OnStart` reads the
+`VWAPTradeAI.cs` is the Robot lifecycle shell and the composition root. `OnStart` reads the
 parameters, validates them (`StartupCheck`), builds the pipelines — `BuildSignalPipeline`,
 `BuildChartDrawing`, `BuildTradeLog`, `BuildOrderExecutor`, `BuildApprovalPipeline` — and
 subscribes everything that follows a trade to `OrderExecutor`'s events in one block. The flows:
@@ -142,7 +142,7 @@ Each pattern is also named in a `Pattern:` comment on the class that plays it.
 
 | Pattern | Where | Why |
 | --- | --- | --- |
-| Composition Root | `DayTradeSelf` (the Robot) | The one place the pipelines are created and wired together, so each class receives what it needs instead of reaching for it. |
+| Composition Root | `VWAPTradeAI` (the Robot) | The one place the pipelines are created and wired together, so each class receives what it needs instead of reaching for it. |
 | Adapter | `CAlgoBroker : IBroker`, `CAlgoSymbolModel : ISymbolModel`, `TradeNotificationClient` | cAlgo and WebSocket types stop at the edge, so orders, sizing and the CSV are unit tested with fakes. |
 | Observer | `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart` | The CSV and the app notice follow a trade without the executor knowing them. |
 | Facade | `ApprovalDesk` | The Robot makes three calls; the approval rules, the thread hand-off and the JSON stay behind it. |
@@ -174,12 +174,12 @@ Conventions worth knowing before renaming things:
 
 ```bash
 # Build (from repo root)
-dotnet build "DayTradeSelf.sln"          # Debug
-dotnet build "DayTradeSelf.sln" -c Release
+dotnet build "VWAPTradeAI.sln"          # Debug
+dotnet build "VWAPTradeAI.sln" -c Release
 ```
 
 A successful build produces a `.algo` package under
-`DayTradeSelf/bin/<Config>/net6.0/`. The `.algo` file is the deployable
+`VWAPTradeAI/bin/<Config>/net6.0/`. The `.algo` file is the deployable
 cBot artifact loaded by the cTrader desktop platform.
 
 The cBot itself is validated by running it in cTrader's backtester/optimizer, not via a CLI
@@ -190,7 +190,7 @@ Pure (framework-independent) helpers are unit-tested with xUnit under `tests/`:
 
 ```bash
 ./scripts/test.sh                                       # build cBot + run all tests
-dotnet test "tests/DayTradeSelf.Tests/DayTradeSelf.Tests.csproj"      # tests only
+dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"      # tests only
 ```
 
 The test project is intentionally **not** part of the `.sln` (which cTrader builds) and

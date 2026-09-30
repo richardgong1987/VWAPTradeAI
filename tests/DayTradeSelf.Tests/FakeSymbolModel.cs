@@ -1,7 +1,7 @@
 using System;
 using cAlgo.Robots;
 
-namespace DayTradeSelf.Tests {
+namespace VWAPTradeAI.Tests {
     // Deterministic stand-in for a cTrader Symbol. Volume snaps to the nearest whole step,
     // matching RoundingMode.ToNearest in CAlgoSymbolModel. The epsilon absorbs floating-point
     // noise such as 19999.9999999 so an exact budget is not pushed a step off.

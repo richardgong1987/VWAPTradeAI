@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 REPO_ROOT="$(cd .. && pwd)"
-SOLUTION="$REPO_ROOT/DayTradeSelf.sln"
+SOLUTION="$REPO_ROOT/VWAPTradeAI.sln"
 
 
 python3 -m venv .venv

@@ -19,39 +19,39 @@
        cAlgo.API dependency. Only cAlgo-free files may be linked here: never the Robot, the
        Chart/ drawing, the Bars readers (VwapSeries, SignalDetector) or the Broker/ adapters. -->
   <ItemGroup Label="Behavior under test">
-    <Compile Include="..\..\DayTradeSelf\StartupCheck.cs" Link="StartupCheck.cs" />
-    <Compile Include="..\..\DayTradeSelf\Approval\ApprovalDesk.cs" Link="Approval\ApprovalDesk.cs" />
-    <Compile Include="..\..\DayTradeSelf\Approval\DecisionInbox.cs" Link="Approval\DecisionInbox.cs" />
-    <Compile Include="..\..\DayTradeSelf\Approval\PendingTradeSignals.cs" Link="Approval\PendingTradeSignals.cs" />
-    <Compile Include="..\..\DayTradeSelf\Approval\TradeApproval.cs" Link="Approval\TradeApproval.cs" />
-    <Compile Include="..\..\DayTradeSelf\Notifications\RelayEnvironments.cs" Link="Notifications\RelayEnvironments.cs" />
-    <Compile Include="..\..\DayTradeSelf\Notifications\TradeMessages.cs" Link="Notifications\TradeMessages.cs" />
-    <Compile Include="..\..\DayTradeSelf\Notifications\TradeNotificationClient.cs" Link="Notifications\TradeNotificationClient.cs" />
-    <Compile Include="..\..\DayTradeSelf\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
-    <Compile Include="..\..\DayTradeSelf\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
-    <Compile Include="..\..\DayTradeSelf\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />
-    <Compile Include="..\..\DayTradeSelf\Signals\HanJinSignals26.cs" Link="Signals\HanJinSignals26.cs" />
-    <Compile Include="..\..\DayTradeSelf\Signals\LevelPatternMatcher.cs" Link="Signals\LevelPatternMatcher.cs" />
-    <Compile Include="..\..\DayTradeSelf\Signals\VwapStack.cs" Link="Signals\VwapStack.cs" />
-    <Compile Include="..\..\DayTradeSelf\TradeLog\CsvCell.cs" Link="TradeLog\CsvCell.cs" />
-    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvColumns.cs" Link="TradeLog\TradeCsvColumns.cs" />
-    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvFile.cs" Link="TradeLog\TradeCsvFile.cs" />
-    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvLogger.cs" Link="TradeLog\TradeCsvLogger.cs" />
-    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeResultR.cs" Link="TradeLog\TradeResultR.cs" />
-    <Compile Include="..\..\DayTradeSelf\Vwap\VwapCalculator.cs" Link="Vwap\VwapCalculator.cs" />
-    <Compile Include="..\..\DayTradeSelf\Vwap\VwapPeriod.cs" Link="Vwap\VwapPeriod.cs" />
+    <Compile Include="..\..\VWAPTradeAI\StartupCheck.cs" Link="StartupCheck.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Approval\ApprovalDesk.cs" Link="Approval\ApprovalDesk.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Approval\DecisionInbox.cs" Link="Approval\DecisionInbox.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Approval\PendingTradeSignals.cs" Link="Approval\PendingTradeSignals.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Approval\TradeApproval.cs" Link="Approval\TradeApproval.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Notifications\RelayEnvironments.cs" Link="Notifications\RelayEnvironments.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Notifications\TradeMessages.cs" Link="Notifications\TradeMessages.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Notifications\TradeNotificationClient.cs" Link="Notifications\TradeNotificationClient.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Signals\HanJinSignals26.cs" Link="Signals\HanJinSignals26.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Signals\LevelPatternMatcher.cs" Link="Signals\LevelPatternMatcher.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Signals\VwapStack.cs" Link="Signals\VwapStack.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TradeLog\CsvCell.cs" Link="TradeLog\CsvCell.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeCsvColumns.cs" Link="TradeLog\TradeCsvColumns.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeCsvFile.cs" Link="TradeLog\TradeCsvFile.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeCsvLogger.cs" Link="TradeLog\TradeCsvLogger.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeResultR.cs" Link="TradeLog\TradeResultR.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Vwap\VwapCalculator.cs" Link="Vwap\VwapCalculator.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Vwap\VwapPeriod.cs" Link="Vwap\VwapPeriod.cs" />
   </ItemGroup>
 
   <!-- The ports the pure classes depend on. Their cAlgo adapters (CAlgoBroker, CAlgoSymbolModel)
        are intentionally excluded; the tests supply fakes. -->
   <ItemGroup Label="Ports">
-    <Compile Include="..\..\DayTradeSelf\Broker\IBroker.cs" Link="Broker\IBroker.cs" />
-    <Compile Include="..\..\DayTradeSelf\Broker\ISymbolModel.cs" Link="Broker\ISymbolModel.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Broker\IBroker.cs" Link="Broker\IBroker.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Broker\ISymbolModel.cs" Link="Broker\ISymbolModel.cs" />
   </ItemGroup>
 
   <!-- Every data type: Models/ holds only pure data. -->
   <ItemGroup Label="Models">
-    <Compile Include="..\..\DayTradeSelf\Models\*.cs" LinkBase="Models" />
+    <Compile Include="..\..\VWAPTradeAI\Models\*.cs" LinkBase="Models" />
   </ItemGroup>
 
 </Project>

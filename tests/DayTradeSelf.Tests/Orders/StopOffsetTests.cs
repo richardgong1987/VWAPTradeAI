@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Orders {
+namespace VWAPTradeAI.Tests.Orders {
     // The stop does not sit exactly on the pattern's level — it is pushed that many ticks further
     // out, so a wick that just grazes the level does not take the trade out.
     public class StopOffsetTests {

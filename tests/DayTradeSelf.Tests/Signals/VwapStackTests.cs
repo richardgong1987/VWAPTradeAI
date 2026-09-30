@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace DayTradeSelf.Tests.Signals {
+namespace VWAPTradeAI.Tests.Signals {
     // The direction gate: only close > daily > weekly may go long, only close < daily < weekly may
     // go short. Anything else — the VWAPs crossed, or the close sits between them — trades nothing.
     public class VwapStackTests {
