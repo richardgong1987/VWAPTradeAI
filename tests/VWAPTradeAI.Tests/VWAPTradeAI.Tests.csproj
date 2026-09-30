@@ -33,6 +33,11 @@
     <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeCsvFile.cs" Link="TradeLog\TradeCsvFile.cs" />
     <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeCsvLogger.cs" Link="TradeLog\TradeCsvLogger.cs" />
     <Compile Include="..\..\VWAPTradeAI\TradeLog\TradeResultR.cs" Link="TradeLog\TradeResultR.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TrendAssessment\AiTrendFilter.cs" Link="TrendAssessment\AiTrendFilter.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TrendAssessment\TrendAssessmentClient.cs" Link="TrendAssessment\TrendAssessmentClient.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TrendAssessment\TrendAssessmentRecorder.cs" Link="TrendAssessment\TrendAssessmentRecorder.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TrendAssessment\TrendAssessmentReply.cs" Link="TrendAssessment\TrendAssessmentReply.cs" />
+    <Compile Include="..\..\VWAPTradeAI\TrendAssessment\TrendDirectionGate.cs" Link="TrendAssessment\TrendDirectionGate.cs" />
     <Compile Include="..\..\VWAPTradeAI\Vwap\VwapCalculator.cs" Link="Vwap\VwapCalculator.cs" />
     <Compile Include="..\..\VWAPTradeAI\Vwap\VwapPeriod.cs" Link="Vwap\VwapPeriod.cs" />
   </ItemGroup>

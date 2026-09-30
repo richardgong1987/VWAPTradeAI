@@ -10,7 +10,9 @@ namespace cAlgo.Robots;
 //
 // There is no order window: a signal may trade at any hour the market is open.
 //
-// Its only caller is the Robot's OnBar, for the signal on the bar that just closed.
+// It is called for the signal on the bar that just closed: by the Robot's OnBar directly, or, with
+// the AI trend filter on, by AiTrendFilter once the model has passed the signal. Either way the
+// quote is read here, at the moment of the call, never earlier.
 //
 // Pattern: Observer. PositionOpened and PositionClosed announce this strategy's trades; the trade
 // CSV subscribes in the composition root, so the executor knows nothing of it. It reaches cTrader

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using cAlgo.API;
 
 namespace cAlgo.Robots;
@@ -20,6 +21,21 @@ public class VWAPTradeAI : Robot
     [Parameter("止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int StopOffsetTicks { get; set; }
 
+    // 开启后，信号要先由本机的 AI 服务（TrendAssessmentModel）看图确认趋势，通过了才会下单。只支持实盘和
+    // 模拟盘；关闭时（默认）与 AI 毫无关系，信号照旧立即下单。
+    [Parameter("启用AI趋势过滤", DefaultValue = false, Group = "AI趋势判断")]
+    public bool IsAiTrendFilterEnabled { get; set; }
+
+    [Parameter("AI服务地址", DefaultValue = "http://127.0.0.1:8787", Group = "AI趋势判断")]
+    public string AiServiceUrl { get; set; }
+
+    [Parameter("AI超时秒数", DefaultValue = 30, MinValue = 1, MaxValue = StartupCheck.MaxAiTimeoutSeconds, Group = "AI趋势判断")]
+    public int AiTimeoutSeconds { get; set; }
+
+    // 把发给 AI 的截图和它的判断存到 Documents/TrendAssessment，用于事后评估模型。
+    [Parameter("保存AI评估截图", DefaultValue = false, Group = "AI趋势判断")]
+    public bool IsAiAssessmentRecorded { get; set; }
+
     [Parameter("启动时清空交易记录CSV和截图", DefaultValue = true, Group = "开发调试")]
     public bool ResetTradeLogOnStart { get; set; }
 
@@ -34,10 +50,14 @@ public class VWAPTradeAI : Robot
     private SignalDetector _signalDetector;
     private SignalMarkers _signalMarkers;
     private OrderExecutor _orderExecutor;
+    private TrendAssessmentClient _trendAssessmentClient; // null with the AI trend filter off
+    private AiTrendFilter _aiTrendFilter; // null with the AI trend filter off
 
     protected override void OnStart() {
         LaunchDebug();
-        string error = StartupCheck.FindError(Bars.TimeFrame.Equals(TimeFrame.Minute5), Bars.TimeFrame.ToString(), OrderLabel);
+        string error = StartupCheck.FindError(Bars.TimeFrame.Equals(TimeFrame.Minute5), Bars.TimeFrame.ToString(), OrderLabel) ??
+                       StartupCheck.FindAiFilterError(IsAiTrendFilterEnabled, RunningMode == RunningMode.RealTime, AiServiceUrl,
+                           AiTimeoutSeconds);
 
         if (error != null) {
             Print("*****参数有误，已停止：{0}", error);
@@ -59,6 +79,9 @@ public class VWAPTradeAI : Robot
         _orderExecutor.PositionOpened += (_, _) => entryChartshots.Take();
         _orderExecutor.PositionClosed += tradeLog.RecordClose;
 
+        if (IsAiTrendFilterEnabled)
+            _aiTrendFilter = BuildAiTrendFilter();
+
         Print("*****VWAP break and reverse started.");
     }
 
@@ -72,13 +95,27 @@ public class VWAPTradeAI : Robot
         if (signal == null)
             return;
 
+        bool isAiTrendFilterOn = _aiTrendFilter != null;
+
+        // The AI's picture is taken before this signal's marker is drawn: a model that sees the
+        // strategy's own BUY/SELL mark is nudged towards the answer the strategy hopes for.
+        byte[] unmarkedChartPng = isAiTrendFilterOn ? Chart.TakeChartshot() : null;
+
         // The chart shows every signal, whether or not its order goes out.
         _signalMarkers.Draw(signal);
+
+        if (isAiTrendFilterOn) {
+            // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
+            _aiTrendFilter.Submit(signal, unmarkedChartPng);
+            return;
+        }
+
         // The executor logs the gate that stopped an order, so the result needs nothing more here.
         _orderExecutor.TryEnter(signal, out _);
     }
 
     protected override void OnStop() {
+        _trendAssessmentClient?.Dispose();
         Print("*****cBot stopped.*******************");
     }
 
@@ -124,6 +161,40 @@ public class VWAPTradeAI : Robot
     private OrderExecutor BuildOrderExecutor(TradeSettingsModel settings) {
         var planner = new OrderPlanner(new CAlgoSymbolModel(Symbol), settings);
         return new OrderExecutor(new CAlgoBroker(this), planner, OrderLabel.Trim(), Log);
+    }
+
+    // Signal → local AI service → TrendDirectionGate → OrderExecutor. Only built with the filter on.
+    private AiTrendFilter BuildAiTrendFilter() {
+        _trendAssessmentClient = new TrendAssessmentClient(new Uri(AiServiceUrl.Trim()), TimeSpan.FromSeconds(AiTimeoutSeconds));
+        Print("*****AI trend filter on | Service: {0}, TimeoutSeconds: {1}, Recording: {2}", AiServiceUrl.Trim(), AiTimeoutSeconds,
+            IsAiAssessmentRecorded);
+
+        // Not awaited: loading the model takes seconds, and the outcome only goes to the log.
+        _ = WarmUpAiServiceAsync(_trendAssessmentClient);
+
+        // OnBar fires as a new bar opens, so the last closed bar is Count - 2 (as in SignalDetector).
+        return new AiTrendFilter(_trendAssessmentClient.AssessAsync, BeginInvokeOnMainThread, () => Bars.Count - 2, _orderExecutor.TryEnter,
+            BuildTrendAssessmentRecorder(), Log);
+    }
+
+    // Null unless the AI's pictures and answers are being kept for evaluation.
+    private TrendAssessmentRecorder BuildTrendAssessmentRecorder() {
+        if (!IsAiAssessmentRecorded)
+            return null;
+
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var recorder = new TrendAssessmentRecorder(TrendAssessmentRecorder.DirectoryIn(documentsPath), SymbolName);
+        Print("****AI assessment folder: {0}", recorder.DirectoryPath);
+        return recorder;
+    }
+
+    // Asks the service to load the model now, so the first signal does not pay for it. The wait is
+    // off the cBot thread; only the log line comes back to it.
+    private async Task WarmUpAiServiceAsync(TrendAssessmentClient client) {
+        string failure = await client.WarmUpAsync().ConfigureAwait(false);
+        BeginInvokeOnMainThread(() => Log(failure == null
+            ? "AI service ready | The model is loaded"
+            : $"AI service warm-up failed | Reason: {failure} | Signals are rejected until the service answers"));
     }
 
     private void Log(string message) {
