@@ -5,9 +5,6 @@ using cAlgo.API;
 
 namespace cAlgo.Robots;
 
-// Pattern: Composition Root. The only place objects are created and wired together: OnStart reads
-// the parameters, validates them and builds the pipelines; the other overrides forward cTrader's
-// events to them. No trading rule lives here.
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class VWAPTradeAI : Robot
 {
