@@ -109,6 +109,12 @@ out, under `~/Documents/TrendAssessment`. This is evaluation data: it is never c
 start-up, and it is separate from the [entry screenshots](#entry-screenshots), which are taken
 after a trade opens.
 
+**Step by step.** [docs/testing-the-ai-trend-filter.md](docs/testing-the-ai-trend-filter.md)
+walks through starting everything, the log lines to expect, what to check and what to do when
+something fails. When the model's reading of a chart is wrong, see
+[Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md)
+in the TrendAssessmentModel project.
+
 ## Architecture
 
 ![System architecture](docs/architecture.svg)
