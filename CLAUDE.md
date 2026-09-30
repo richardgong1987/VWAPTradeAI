@@ -66,8 +66,10 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
 - `Chartshots/` — a screenshot of the chart for every order that goes out. `EntryChartshots` calls
   `Chart.TakeChartshot()` (null when the chart is not visible: non-visual backtest, optimization)
   and never lets a failed screenshot stop the cBot; `ChartshotFolder` (pure, unit tested) owns
-  `~/Documents/TakeChartshot` and the numbering `1.png`, `2.png`, …, which carries on after the
-  highest number already in the folder, so no picture is ever overwritten.
+  `~/Documents/TakeChartshot` and the numbering `1.png`, `2.png`, …. With
+  `启动时清空交易记录CSV和截图` on it deletes the earlier runs' numbered pictures at start-up and
+  starts again from 1, matching the reset trade CSV; off, numbering carries on after the highest
+  number in the folder. Either way a picture is never overwritten.
 - `Orders/` — `RiskBudget` (how much account currency one trade may lose), `OrderPlanner` (sizing/geometry
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places

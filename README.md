@@ -49,7 +49,7 @@ The labels are the ones shown in cTrader.
 | **风控配置** | |
 | 止损偏移点数 | Ticks the stop sits beyond the pattern's stop level. |
 | **开发调试** | |
-| 启动时清空交易记录CSV | Empty the trade CSV when the bot starts. |
+| 启动时清空交易记录CSV和截图 | Empty the trade CSV and delete the numbered entry screenshots when the bot starts. |
 | debug调试 | Call `Debugger.Launch()` in `OnStart`. See [Debugging](#debugging). |
 | 输出文件名 | Trade CSV file name. An absolute path is used as is. |
 
@@ -65,16 +65,22 @@ Every trade is written to a CSV in `~/Documents`, in a folder picked by how the 
 
 The full path is printed in the cTrader log at start-up, on the `CSV logger path` line.
 
-With `启动时清空交易记录CSV` off, trades accumulate across runs. If the existing file was written by
+With `启动时清空交易记录CSV和截图` off, trades accumulate across runs. If the existing file was written by
 a build with different columns, it is renamed to `<name>.old-<yyyyMMdd-HHmmss>.csv` in the same
 folder and a fresh file is started; the log says so on start-up.
 
 ## Entry screenshots
 
 Every time an order goes out, the bot saves a screenshot of the chart to
-`~/Documents/TakeChartshot`, named by number: `1.png`, `2.png`, and so on. Numbering carries on
-after the highest number already in the folder, so a restart or a new backtest never overwrites
-a picture; empty the folder to start again from 1.
+`~/Documents/TakeChartshot`, named by number: `1.png`, `2.png`, and so on.
+
+With `启动时清空交易记录CSV和截图` on (the default), the numbered pictures of earlier runs are
+deleted at start-up and the run starts again from `1.png`, so the pictures line up with the rows
+of the trade CSV. Files with any other name are left alone. With it off, numbering carries on
+after the highest number already in the folder and nothing is overwritten.
+
+All running modes and all instances share this one folder, so a bot starting with the reset on
+also deletes the pictures another instance has saved there.
 
 cTrader can only take a screenshot of a chart that is visible. In a non-visual backtest, in
 optimization, or when the chart is not on screen, the screenshot is skipped and the log says so;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -9,8 +10,8 @@ namespace cAlgo.Robots;
 
 // The folder the entry screenshots go to, numbered in the order they were taken: 1.png, 2.png, …
 //
-// Numbering carries on after the highest number already in the folder, so a restart or a new
-// backtest adds to the pictures that are there and never overwrites one.
+// A picture in the folder is never overwritten: numbering carries on after the highest number
+// already there.
 //
 // Pure: no cAlgo dependency, unit tested.
 public class ChartshotFolder {
@@ -19,10 +20,17 @@ public class ChartshotFolder {
 
     private int _lastNumber;
 
-    public ChartshotFolder(string directoryPath) {
+    // resetOnStart: delete the numbered pictures of earlier runs, so this run starts at 1 and its
+    // pictures line up with the rows of a trade CSV that was reset the same way. Off, the pictures
+    // accumulate across runs, as the CSV rows do.
+    public ChartshotFolder(bool resetOnStart, string directoryPath) {
         DirectoryPath = directoryPath;
         Directory.CreateDirectory(directoryPath);
-        _lastNumber = HighestNumberIn(directoryPath);
+
+        if (resetOnStart)
+            DeleteNumberedPictures();
+
+        _lastNumber = HighestNumber();
     }
 
     public static string DirectoryIn(string documentsPath) {
@@ -46,14 +54,22 @@ public class ChartshotFolder {
         return path;
     }
 
-    // 0 when the folder holds no numbered picture yet. Files with other names are not ours.
-    private static int HighestNumberIn(string directoryPath) {
-        return Directory.EnumerateFiles(directoryPath, "*" + Extension)
-            .Select(NumberOf)
-            .DefaultIfEmpty(0)
-            .Max();
+    // Files with other names are not ours, and stay.
+    private void DeleteNumberedPictures() {
+        foreach (string path in PicturePaths().Where(path => NumberOf(path) > 0).ToList())
+            IoFile.Delete(path);
     }
 
+    // 0 when the folder holds no numbered picture yet.
+    private int HighestNumber() {
+        return PicturePaths().Select(NumberOf).DefaultIfEmpty(0).Max();
+    }
+
+    private IEnumerable<string> PicturePaths() {
+        return Directory.EnumerateFiles(DirectoryPath, "*" + Extension);
+    }
+
+    // 0 for a name that is not a number.
     private static int NumberOf(string path) {
         string name = Path.GetFileNameWithoutExtension(path);
         return int.TryParse(name, NumberStyles.None, CultureInfo.InvariantCulture, out int number) ? number : 0;

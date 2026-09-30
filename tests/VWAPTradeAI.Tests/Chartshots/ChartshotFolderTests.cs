@@ -5,8 +5,8 @@ using cAlgo.Robots;
 using Xunit;
 
 namespace VWAPTradeAI.Tests.Chartshots {
-    // How the entry screenshots are numbered. What matters most is that a picture already in the
-    // folder is never overwritten, by a restart or by a second instance.
+    // How the entry screenshots are numbered. What matters most is that a picture is never
+    // overwritten, by a restart or by a second instance, and that a reset deletes only our own.
     public class ChartshotFolderTests : IDisposable {
         private static readonly byte[] Png = { 1, 2, 3 };
 
@@ -17,6 +17,8 @@ namespace VWAPTradeAI.Tests.Chartshots {
                 Directory.Delete(_directory, recursive: true);
         }
 
+        private ChartshotFolder Open(bool resetOnStart = false) => new(resetOnStart, _directory);
+
         private string[] FileNames() => Directory.GetFiles(_directory).Select(Path.GetFileName).OrderBy(name => name).ToArray();
 
         [Fact]
@@ -26,7 +28,7 @@ namespace VWAPTradeAI.Tests.Chartshots {
 
         [Fact]
         public void pictures_are_numbered_from_1_in_the_order_they_are_saved() {
-            var folder = new ChartshotFolder(_directory);
+            ChartshotFolder folder = Open();
 
             string first = folder.Save(Png);
             folder.Save(Png);
@@ -38,16 +40,39 @@ namespace VWAPTradeAI.Tests.Chartshots {
         }
 
         [Fact]
-        public void a_restart_carries_on_after_the_highest_number_in_the_folder() {
-            var firstRun = new ChartshotFolder(_directory);
+        public void without_a_reset_a_restart_carries_on_after_the_highest_number_in_the_folder() {
+            ChartshotFolder firstRun = Open();
             firstRun.Save(Png);
             firstRun.Save(Png);
             // A deleted picture leaves a gap; filling it would put a newer picture before an older one.
             File.Delete(Path.Combine(_directory, "1.png"));
 
-            string saved = new ChartshotFolder(_directory).Save(Png);
+            string saved = Open().Save(Png);
 
             Assert.Equal("3.png", Path.GetFileName(saved));
+        }
+
+        [Fact]
+        public void reset_on_start_deletes_the_earlier_runs_pictures_and_starts_again_from_1() {
+            ChartshotFolder firstRun = Open();
+            firstRun.Save(Png);
+            firstRun.Save(Png);
+
+            ChartshotFolder secondRun = Open(resetOnStart: true);
+
+            Assert.Empty(FileNames());
+            Assert.Equal("1.png", Path.GetFileName(secondRun.Save(Png)));
+        }
+
+        [Fact]
+        public void reset_on_start_leaves_files_that_are_not_numbered_pictures() {
+            Open().Save(Png);
+            File.WriteAllText(Path.Combine(_directory, "notes.png"), "");
+            File.WriteAllText(Path.Combine(_directory, "9.txt"), "");
+
+            Open(resetOnStart: true);
+
+            Assert.Equal(new[] { "9.txt", "notes.png" }, FileNames());
         }
 
         [Fact]
@@ -56,14 +81,14 @@ namespace VWAPTradeAI.Tests.Chartshots {
             File.WriteAllText(Path.Combine(_directory, "notes.png"), "");
             File.WriteAllText(Path.Combine(_directory, "9.txt"), "");
 
-            string saved = new ChartshotFolder(_directory).Save(Png);
+            string saved = Open().Save(Png);
 
             Assert.Equal("1.png", Path.GetFileName(saved));
         }
 
         [Fact]
         public void a_number_another_instance_took_meanwhile_is_skipped_not_overwritten() {
-            var folder = new ChartshotFolder(_directory);
+            ChartshotFolder folder = Open();
             File.WriteAllBytes(Path.Combine(_directory, "1.png"), new byte[] { 9 });
 
             string saved = folder.Save(Png);

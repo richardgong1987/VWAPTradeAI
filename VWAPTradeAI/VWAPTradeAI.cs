@@ -20,7 +20,7 @@ public class VWAPTradeAI : Robot
     [Parameter("止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int StopOffsetTicks { get; set; }
 
-    [Parameter("启动时清空交易记录CSV", DefaultValue = true, Group = "开发调试")]
+    [Parameter("启动时清空交易记录CSV和截图", DefaultValue = true, Group = "开发调试")]
     public bool ResetTradeLogOnStart { get; set; }
 
     [Parameter("debug调试", DefaultValue = false, Group = "开发调试")]
@@ -115,7 +115,7 @@ public class VWAPTradeAI : Robot
     // A numbered screenshot of the chart for every order that goes out.
     private EntryChartshots BuildEntryChartshots() {
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folder = new ChartshotFolder(ChartshotFolder.DirectoryIn(documentsPath));
+        var folder = new ChartshotFolder(ResetTradeLogOnStart, ChartshotFolder.DirectoryIn(documentsPath));
         Print("****Chartshot folder: {0}", folder.DirectoryPath);
         return new EntryChartshots(Chart, folder, Log);
     }
