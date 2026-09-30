@@ -36,14 +36,14 @@ weekly from Monday 06:00. Every bar accumulates, so a VWAP value is never blank.
 
 `VWAPTradeAI.cs` is the Robot lifecycle shell and the composition root. `OnStart` reads the
 parameters, validates them (`StartupCheck`), builds the pipelines — `BuildSignalPipeline`,
-`BuildChartDrawing`, `BuildTradeLog`, `BuildOrderExecutor` — and subscribes everything that
-follows a trade to `OrderExecutor`'s events in one block. The flows:
+`BuildChartDrawing`, `BuildTradeLog`, `BuildEntryChartshots`, `BuildOrderExecutor` — and
+subscribes everything that follows a trade to `OrderExecutor`'s events in one block. The flows:
 
 - per closed bar (`OnBar`): `SignalDetector.DetectOnClosedBar` → chart marker
   (`SignalMarkers.Draw`, for every signal, whether or not its order goes out) →
   `OrderExecutor.TryEnter`;
-- per trade: `OrderExecutor.PositionOpened` → trade CSV entry row;
-  `OrderExecutor.PositionClosed` → trade CSV close row.
+- per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
+  (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
 
 It holds no rules of its own; anything resembling a decision belongs in one of the classes below.
 
@@ -63,6 +63,11 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   below).
 - `Chart/` — `VwapLines` draws the three VWAP lines, `SignalMarkers` a marker on every detected signal
   (drawn whether or not its order goes out).
+- `Chartshots/` — a screenshot of the chart for every order that goes out. `EntryChartshots` calls
+  `Chart.TakeChartshot()` (null when the chart is not visible: non-visual backtest, optimization)
+  and never lets a failed screenshot stop the cBot; `ChartshotFolder` (pure, unit tested) owns
+  `~/Documents/TakeChartshot` and the numbering `1.png`, `2.png`, …, which carries on after the
+  highest number already in the folder, so no picture is ever overwritten.
 - `Orders/` — `RiskBudget` (how much account currency one trade may lose), `OrderPlanner` (sizing/geometry
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places
@@ -89,8 +94,8 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   wholesale, so a cAlgo reference here breaks the tests at once.
 
 Rule of thumb: classes with no `using cAlgo.API` are pure and testable; keep them that way. cAlgo
-is touched only by the Robot, `Chart/`, the `Bars` readers (`VwapSeries`, `SignalDetector`) and
-the `Broker/` adapters; none of those is linked into the test project.
+is touched only by the Robot, `Chart/`, the `Bars` readers (`VwapSeries`, `SignalDetector`),
+`EntryChartshots` and the `Broker/` adapters; none of those is linked into the test project.
 
 ## Design patterns
 
@@ -100,7 +105,7 @@ Each pattern is also named in a `Pattern:` comment on the class that plays it.
 | --- | --- | --- |
 | Composition Root | `VWAPTradeAI` (the Robot) | The one place the pipelines are created and wired together, so each class receives what it needs instead of reaching for it. |
 | Adapter | `CAlgoBroker : IBroker`, `CAlgoSymbolModel : ISymbolModel` | cAlgo types stop at the edge, so orders, sizing and the CSV are unit tested with fakes. |
-| Observer | `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart` | The CSV follows a trade without the executor knowing it. |
+| Observer | `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart` | The CSV and the chart screenshot follow a trade without the executor knowing them. |
 | Strategy (as a table) | `LevelPatternMatcher` rules, `TradeCsvColumns` | Each row carries its own behaviour; adding a pattern or a column is one line, and the two sides/the header and rows cannot drift apart. |
 
 Deliberately not used: a Chain of Responsibility for the order gates (a few guard clauses in
@@ -167,7 +172,7 @@ in the cTrader UI and the optimizer. Trading actions and market data come from i
 members (`ExecuteMarketOrder`, `Positions`, `Symbol`, `Bars`, `MarketSeries`, `Print`, etc.).
 
 The bot runs with `[Robot(AccessRights = AccessRights.FullAccess)]` because it writes the trade
-CSV under `~/Documents`. Don't add network or other file access on the strength of it.
+CSV and the entry screenshots under `~/Documents`. Don't add network or other file access on the strength of it.
 
 ## Conventions
 

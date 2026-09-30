@@ -51,10 +51,12 @@ public class VWAPTradeAI : Robot
         BuildSignalPipeline();
         BuildChartDrawing();
         TradeCsvLogger tradeLog = BuildTradeLog();
+        EntryChartshots entryChartshots = BuildEntryChartshots();
         _orderExecutor = BuildOrderExecutor(settings);
 
         // Pattern: Observer. Everything that follows a trade opening or closing, in one place.
         _orderExecutor.PositionOpened += tradeLog.RecordEntry;
+        _orderExecutor.PositionOpened += (_, _) => entryChartshots.Take();
         _orderExecutor.PositionClosed += tradeLog.RecordClose;
 
         Print("*****VWAP break and reverse started.");
@@ -108,6 +110,14 @@ public class VWAPTradeAI : Robot
             Print("****Trade CSV had different columns; the old file was moved to {0}", csvFile.ArchivedFilePath);
 
         return new TradeCsvLogger(csvFile, SymbolName, Bars.TimeFrame.ToString(), Log);
+    }
+
+    // A numbered screenshot of the chart for every order that goes out.
+    private EntryChartshots BuildEntryChartshots() {
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var folder = new ChartshotFolder(ChartshotFolder.DirectoryIn(documentsPath));
+        Print("****Chartshot folder: {0}", folder.DirectoryPath);
+        return new EntryChartshots(Chart, folder, Log);
     }
 
     // Order gates → sizing → the broker, reached only through its adapter.

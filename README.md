@@ -69,6 +69,17 @@ With `启动时清空交易记录CSV` off, trades accumulate across runs. If the
 a build with different columns, it is renamed to `<name>.old-<yyyyMMdd-HHmmss>.csv` in the same
 folder and a fresh file is started; the log says so on start-up.
 
+## Entry screenshots
+
+Every time an order goes out, the bot saves a screenshot of the chart to
+`~/Documents/TakeChartshot`, named by number: `1.png`, `2.png`, and so on. Numbering carries on
+after the highest number already in the folder, so a restart or a new backtest never overwrites
+a picture; empty the folder to start again from 1.
+
+cTrader can only take a screenshot of a chart that is visible. In a non-visual backtest, in
+optimization, or when the chart is not on screen, the screenshot is skipped and the log says so;
+trading is not affected.
+
 ## Build and test
 
 Needs the .NET 10 SDK and cTrader desktop.
@@ -102,6 +113,7 @@ Attach Rider to the process cTrader runs the bot in. Step-by-step guide:
 | `VWAPTradeAI/Broker/` | The boundary to cTrader's trading API (orders, positions, symbol facts). |
 | `VWAPTradeAI/TradeLog/` | The trade CSV: columns, writing, setting old files aside. |
 | `VWAPTradeAI/Chart/` | VWAP lines and signal markers on the chart. |
+| `VWAPTradeAI/Chartshots/` | A numbered screenshot of the chart for every entry. |
 | `VWAPTradeAI/Models/` | Data types. |
 | `tests/VWAPTradeAI.Tests/` | Unit tests for the pure classes. |
 

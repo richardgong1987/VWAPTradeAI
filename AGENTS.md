@@ -24,8 +24,9 @@ Once per closed bar:
    `OrderExecutor.TryEnter` returns whether an order went out, and logs why not. The stop and the
    target come from the signal; the entry is the ask/bid as the next bar opens, and the size
    follows from the actual entry-to-stop distance.
-5. **Record:** a trade gets a trade CSV row when it opens and another when it closes. The CSV is
-   a subscriber to `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart`.
+5. **Record:** a trade gets a trade CSV row and a numbered chart screenshot when it opens, and
+   another CSV row when it closes. Both are subscribers to `OrderExecutor.PositionOpened` /
+   `PositionClosed`, wired in `OnStart`.
 
 ## Rules that protect the strategy
 
@@ -62,6 +63,7 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 | `Broker/` | The trading boundary: ports `IBroker`, `ISymbolModel`; cAlgo adapters `CAlgoBroker`, `CAlgoSymbolModel`. |
 | `TradeLog/` | Trade CSV (`TradeCsvColumns`, `TradeCsvLogger`, `TradeCsvFile`, `CsvCell`, `TradeResultR`). |
 | `Chart/` | `VwapLines`, `SignalMarkers`. Drawing only. |
+| `Chartshots/` | `EntryChartshots` (takes `Chart.TakeChartshot()` per entry), `ChartshotFolder` (`~/Documents/TakeChartshot`, numbered `1.png`, `2.png`, …; pure). |
 | `Models/` | Every data type, suffixed `Model`. Pure data only. |
 
 The design patterns in use (Composition Root, Adapter, Observer, Strategy as a table), where each
@@ -71,8 +73,8 @@ class that plays it; don't add one the code doesn't need.
 Conventions:
 
 - **Pure by default.** A class without `using cAlgo.API` is pure and unit tested; keep new rules
-  that way. cAlgo is touched only by the Robot, `Chart/`, the `Bars` readers and the `Broker/`
-  adapters. `Models/` is pure data; the test project links it wholesale.
+  that way. cAlgo is touched only by the Robot, `Chart/`, the `Bars` readers,
+  `EntryChartshots` and the `Broker/` adapters. `Models/` is pure data; the test project links it wholesale.
 - **Reader / rule pairs.** When a rule needs market data, one class reads `Bars` and another holds
   the rule, as in `VwapSeries`/`VwapCalculator`.
 - **Keep separate types separate:**
@@ -133,11 +135,12 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
 - **Parameter defaults:** `[Parameter(DefaultValue = …)]` only affects new instances. Existing
   instances keep their saved values; recreate the instance to see a new default.
 - **Instances:** each running instance (symbol/timeframe) has its own state and its own `OnStart`.
-- **Access rights:** `AccessRights.FullAccess` is required because the bot writes its CSVs.
-  Output goes under `~/Documents`:
+- **Access rights:** `AccessRights.FullAccess` is required because the bot writes its CSVs
+  and entry screenshots. Output goes under `~/Documents`:
   - `trading_reports` for backtests
   - `simulate_trading_reports` for demo
   - `release_trading_reports` for live
+  - `TakeChartshot` for the entry screenshots, whatever the running mode
   
   The trade CSV is `VWAPTradeAIs.csv` by default. If cTrader reports a sync conflict over full
   access, keep the local source.

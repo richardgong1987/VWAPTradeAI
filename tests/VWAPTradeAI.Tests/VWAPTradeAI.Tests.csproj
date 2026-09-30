@@ -17,9 +17,11 @@
   <!-- Unit tests for the cBot's pure (cAlgo-free) logic. The classes under test are LINKED in
        below (never a ProjectReference) so the tests never pull in the cTrader.Automate /
        cAlgo.API dependency. Only cAlgo-free files may be linked here: never the Robot, the
-       Chart/ drawing, the Bars readers (VwapSeries, SignalDetector) or the Broker/ adapters. -->
+       Chart/ drawing, the Bars readers (VwapSeries, SignalDetector), EntryChartshots or the
+       Broker/ adapters. -->
   <ItemGroup Label="Behavior under test">
     <Compile Include="..\..\VWAPTradeAI\StartupCheck.cs" Link="StartupCheck.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Chartshots\ChartshotFolder.cs" Link="Chartshots\ChartshotFolder.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />
