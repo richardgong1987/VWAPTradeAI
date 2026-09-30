@@ -8,6 +8,10 @@ fractal or harami) that touches it, and the VWAP stack points the same way, the 
 market as the next bar opens, sizing the trade so that hitting the stop loses a fixed share of
 account equity.
 
+An optional **AI trend filter** can stand between the signal and the order: a local vision model
+looks at the chart and the signal is traded only if the visible trend supports it. It is off by
+default, and with it off the bot has nothing to do with AI. See [AI trend filter](#ai-trend-filter-optional).
+
 Strategy spec: `docs/VWAP_Strong_V2.pdf`. TradingView reference indicator for the VWAP lines:
 `docs/vwap-v5-slim.pine`.
 
@@ -24,8 +28,8 @@ open, Monday included.
 1. **Stack.** Long only if `close > daily > weekly`; short only if `close < daily < weekly`.
 2. **Pattern.** A candle pattern for that side touches the daily VWAP.
 
-**Order gates.** A signal is traded at once, live, in a backtest and in optimization alike, unless
-a gate stops it: an open position already on this level, price no longer between the signal's
+**Order gates.** With the AI trend filter off (the default), a signal is traded at once, live, in
+a backtest and in optimization alike, unless a gate stops it: an open position already on this level, price no longer between the signal's
 stop and target, a size the broker does not accept, or the broker's refusal. The log says which.
 
 **Stop, target and entry.** The stop and the target are fixed by the signal: the stop sits
@@ -36,6 +40,82 @@ placed.
 
 **Order.** The stop sits a few ticks beyond the pattern's own stop level. The target is a fixed
 multiple of that risk (R). Both are set when the order opens; nothing moves them afterwards.
+
+## AI trend filter (optional)
+
+With `启用AI趋势过滤` on, a signal must be confirmed by a local vision model before it is traded:
+
+```text
+AI filter off (default):   signal → marker → order gates → order
+
+AI filter on:              signal → screenshot of the chart (before the marker is drawn)
+                                  → marker
+                                  → local AI assessment (several seconds, in the background)
+                                  → AI gate
+                                  → order gates → order
+```
+
+**What the model is asked.** Two things about the chart it is shown: the overall trend of the
+candlesticks (`UP`, `DOWN`, `SIDEWAYS`) and the slope of the solid yellow daily VWAP (`RISING`,
+`FALLING`, `FLAT`). It does not find signals, predict prices, size or place orders.
+
+**The AI gate.**
+
+| Signal | Model says | Result |
+| --- | --- | --- |
+| Buy | trend `UP`, daily VWAP `RISING` or `FALLING` | pass |
+| Sell | trend `DOWN`, daily VWAP `RISING` or `FALLING` | pass |
+| any | daily VWAP `FLAT` | no trade |
+| any | trend `SIDEWAYS`, or against the signal | no trade |
+| any | chart unreadable, service or model unavailable, timeout, invalid answer | no trade |
+
+The model's confidence numbers are logged for later evaluation and are not part of the rule.
+
+**It fails closed.** If the chart cannot be captured (it must be visible on screen), the service
+is down or slow, or the answer arrives after the next bar has closed, the signal is not traded and
+the log says why.
+
+**The order itself is unchanged.** After the model passes a signal, the bot reads the Ask/Bid of
+that moment and applies the usual order gates, stop, target and sizing. Expect the entry some
+seconds after the bar opens instead of at its first tick.
+
+**Live and demo only.** The bot refuses to start with the filter on in a backtest or an
+optimization: a backtest's clock does not wait for the model, and its chart picture lags behind
+the bot. With the filter off, backtests run exactly as before.
+
+**What must be running.** The model is served by a separate project,
+[TrendAssessmentModel](https://github.com/richardgong1987/TrendAssessmentModel), which this bot
+calls over HTTP on the same machine:
+
+```text
+VWAPTradeAI → TrendAssessmentModel http://127.0.0.1:8787 → Ollama http://127.0.0.1:11434 → gemma3:27b
+```
+
+Ollama and `gemma3:27b` are already installed on the trading machine. Start the service before
+turning the filter on:
+
+```bash
+cd ~/PycharmProjects/TrendAssessmentModel
+.venv/bin/python -m trend_assessment
+```
+
+At start-up the bot asks the service to load the model and logs `AI service ready`, or the reason
+it is not. Each decision is logged as `AI trend accepted`, `AI trend rejected`,
+`AI trend unreadable` or `AI trend unavailable`.
+
+**Keeping the AI's input.** With `保存AI评估截图` on, every assessment saves the exact picture the
+model was sent, and a JSON file with the answer, the gate's decision and whether an order went
+out, under `~/Documents/TrendAssessment`. This is evaluation data: it is never cleared at
+start-up, and it is separate from the [entry screenshots](#entry-screenshots), which are taken
+after a trade opens.
+
+## Architecture
+
+![System architecture](docs/architecture.svg)
+
+The design of the AI trend filter, the HTTP contract between the two projects, the threading
+model and all six diagrams are in [docs/architecture.md](docs/architecture.md). The diagrams'
+editable source is [docs/architecture.drawio](docs/architecture.drawio).
 
 ## Parameters
 
@@ -48,6 +128,11 @@ The labels are the ones shown in cTrader.
 | 止盈目标 | Take-profit, in R (multiples of the stop distance). |
 | **风控配置** | |
 | 止损偏移点数 | Ticks the stop sits beyond the pattern's stop level. |
+| **AI趋势判断** | |
+| 启用AI趋势过滤 | Off by default. On, a signal is traded only after the local AI service confirms the trend. Live and demo only. |
+| AI服务地址 | Where the TrendAssessmentModel service listens. Default `http://127.0.0.1:8787`. |
+| AI超时秒数 | How long to wait for one assessment before rejecting the signal. Default 30, at most 240. Keep it above the service's own limit (25 s). |
+| 保存AI评估截图 | Off by default. On, keeps the AI's input picture and its answer under `~/Documents/TrendAssessment`. |
 | **开发调试** | |
 | 启动时清空交易记录CSV和截图 | Empty the trade CSV and delete the numbered entry screenshots when the bot starts. |
 | debug调试 | Call `Debugger.Launch()` in `OnStart`. See [Debugging](#debugging). |
@@ -102,6 +187,14 @@ cTrader, then backtest.
 The unit tests (`tests/VWAPTradeAI.Tests`, xUnit, `net10.0`) aren't part of the solution. They
 compile the pure source files directly, so they never need cTrader.
 
+Two further tests send a blank picture and a real chart through the bot's HTTP client to the real
+TrendAssessmentModel service. They are skipped unless asked for, and need the service running:
+
+```bash
+RUN_AI_SERVICE_TESTS=1 AI_SERVICE_TEST_PNG=/path/to/chart.png \
+  dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj" --filter "FullyQualifiedName~TrendAssessmentServiceTests"
+```
+
 ## Debugging
 
 Attach Rider to the process cTrader runs the bot in. Step-by-step guide:
@@ -120,7 +213,9 @@ Attach Rider to the process cTrader runs the bot in. Step-by-step guide:
 | `VWAPTradeAI/TradeLog/` | The trade CSV: columns, writing, setting old files aside. |
 | `VWAPTradeAI/Chart/` | VWAP lines and signal markers on the chart. |
 | `VWAPTradeAI/Chartshots/` | A numbered screenshot of the chart for every entry. |
+| `VWAPTradeAI/TrendAssessment/` | The optional AI trend filter: the gate rule, the link to the AI service, the flow, the recorder. |
 | `VWAPTradeAI/Models/` | Data types. |
 | `tests/VWAPTradeAI.Tests/` | Unit tests for the pure classes. |
+| `docs/` | Architecture: `architecture.md`, the editable `architecture.drawio` and its SVG exports. |
 
 The full module map, the design patterns in use and the design rules are in [CLAUDE.md](CLAUDE.md).

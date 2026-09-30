@@ -14,12 +14,23 @@ per-trade risk budget. A signal needs:
    (`VwapStack.ResolveSide`). Such a bar is called Strong.
 2. **Pattern** — a candle pattern for that side touching the daily VWAP (`LevelPatternMatcher`).
 
-**A signal trades at once.** `OnBar` hands the closed bar's signal straight to
-`OrderExecutor.TryEnter`; nothing waits for a person, and the bot neither listens to nor sends
-anything over the network. The order still passes every `OrderExecutor` check: no open position
-on the level, price still between the stop and the target, valid sizing, broker acceptance. There
-is no order window: a signal may trade at any hour the market is open, Monday included. Live,
-backtest and optimization all trade the same way.
+**By default a signal trades at once.** With `启用AI趋势过滤` off (the default), `OnBar` hands the
+closed bar's signal straight to `OrderExecutor.TryEnter`; nothing waits for a person, and the bot
+neither listens to nor sends anything over the network. The order still passes every
+`OrderExecutor` check: no open position on the level, price still between the stop and the target,
+valid sizing, broker acceptance. There is no order window: a signal may trade at any hour the
+market is open, Monday included. Live, backtest and optimization all trade the same way.
+
+**The optional AI trend filter puts one gate in front of that.** With `启用AI趋势过滤` on, a signal
+reaches `OrderExecutor` only after a local vision model has looked at a screenshot of the chart
+and its answer passes `TrendDirectionGate`: a Buy needs an UP trend, a Sell a DOWN trend, and the
+daily VWAP must not be FLAT. The model runs behind the separate **TrendAssessmentModel** service
+(`http://127.0.0.1:8787` → Ollama `http://127.0.0.1:11434` → `gemma3:27b`); this cBot knows only
+that service's HTTP contract, never Ollama, the prompt or the model. The answer takes several
+seconds, so it is awaited off the cBot thread and applied back on it
+(`BeginInvokeOnMainThread`). It is fail closed: no picture, no valid answer, an unreadable chart
+or a signal that went stale all mean no trade. The filter is live/demo only; `StartupCheck`
+refuses it in a backtest or optimization. The full design is in `docs/architecture.md`.
 
 **The stop and the target belong to the signal; the entry is the market price.** The stop sits
 `StopOffsetTicks` beyond the pattern's own stop; the target is `TakeProfitR × R` measured from the
@@ -36,12 +47,18 @@ weekly from Monday 06:00. Every bar accumulates, so a VWAP value is never blank.
 
 `VWAPTradeAI.cs` is the Robot lifecycle shell and the composition root. `OnStart` reads the
 parameters, validates them (`StartupCheck`), builds the pipelines — `BuildSignalPipeline`,
-`BuildChartDrawing`, `BuildTradeLog`, `BuildEntryChartshots`, `BuildOrderExecutor` — and
-subscribes everything that follows a trade to `OrderExecutor`'s events in one block. The flows:
+`BuildChartDrawing`, `BuildTradeLog`, `BuildEntryChartshots`, `BuildOrderExecutor` and, only with
+the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follows a trade to
+`OrderExecutor`'s events in one block. The flows:
 
-- per closed bar (`OnBar`): `SignalDetector.DetectOnClosedBar` → chart marker
+- per closed bar (`OnBar`), AI filter off: `SignalDetector.DetectOnClosedBar` → chart marker
   (`SignalMarkers.Draw`, for every signal, whether or not its order goes out) →
   `OrderExecutor.TryEnter`;
+- per closed bar, AI filter on: `SignalDetector.DetectOnClosedBar` → `Chart.TakeChartshot()`
+  (**before** the marker, so the model never sees the strategy's own mark) → `SignalMarkers.Draw`
+  → `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
+  `AiTrendFilter.Complete` → signal still the last closed bar? → `TrendDirectionGate` →
+  `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment;
 - per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
   (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
 
@@ -74,9 +91,19 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places
   the order through `IBroker`, and returns whether an order went out, with the gate's own words
-  as `rejectReason` when not (also logged). Its only caller is the Robot's `OnBar`. It raises
-  `PositionOpened` / `PositionClosed` (this strategy's positions only) and knows nothing of who
-  listens. Unit tested against a fake broker.
+  as `rejectReason` when not (also logged). It is called by the Robot's `OnBar`, or by
+  `AiTrendFilter` when the AI filter is on. It raises `PositionOpened` / `PositionClosed` (this
+  strategy's positions only) and knows nothing of who listens. Unit tested against a fake broker.
+- `TrendAssessment/` — the optional AI trend filter, all of it free of cAlgo and unit tested.
+  `TrendDirectionGate` is the pure PASS/REJECT rule. `TrendAssessmentClient` is the HTTP link to
+  the TrendAssessmentModel service (`POST /v1/assessments`, `POST /v1/warmup`) and never throws
+  for a failed request; `TrendAssessmentReply` reads the service's reply strictly into a
+  `TrendAssessmentResultModel`. `AiTrendFilter` is the flow: `Submit` sends the picture and
+  returns, the answer comes back through `BeginInvokeOnMainThread`, and only a signal that is
+  still the last closed bar and passes the gate goes to `TryEnter`. `TrendAssessmentRecorder`
+  (only with `保存AI评估截图` on) keeps the exact PNG and a JSON file per assessment under
+  `~/Documents/TrendAssessment`, which is never cleared. This is a different picture from
+  `Chartshots/`: that one is taken after the entry, with the marker, as a trade record.
 - `Broker/` — the boundary to cTrader's trading API: the ports `IBroker` (clock, equity, quote,
   positions, market orders, closes) and `ISymbolModel` (symbol facts for sizing), and their cAlgo
   adapters `CAlgoBroker` and `CAlgoSymbolModel`, which translate and decide nothing. The adapters
@@ -92,12 +119,17 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   `OrderPlanModel` (sizing, plus a reference to the signal it was made from), the broker's facts
   (`PositionEntryModel`, `PositionCloseModel`, `PositionCloseReasonModel`,
   `BrokerOrderResultModel`), `TradeLevelModel`, `TradeSettingsModel`, `VwapSampleModel`,
-  `TradeDirectionModel`, `TradeRecordModel` (one CSV row). The test project links `Models/*.cs`
-  wholesale, so a cAlgo reference here breaks the tests at once.
+  `TradeDirectionModel`, `TradeRecordModel` (one CSV row), and the AI filter's
+  `TrendModel` (Up/Down/Sideways), `DailyVwapDirectionModel` (Rising/Falling/Flat),
+  `TrendAssessmentOutcomeModel` (Assessed/Unreadable/Unavailable), `TrendAssessmentResultModel`
+  and `TrendAssessmentRecordModel`. The test project links `Models/*.cs` wholesale, so a cAlgo
+  reference here breaks the tests at once.
 
 Rule of thumb: classes with no `using cAlgo.API` are pure and testable; keep them that way. cAlgo
 is touched only by the Robot, `Chart/`, the `Bars` readers (`VwapSeries`, `SignalDetector`),
-`EntryChartshots` and the `Broker/` adapters; none of those is linked into the test project.
+`EntryChartshots` and the `Broker/` adapters; none of those is linked into the test project. The
+AI filter's picture is taken by the Robot itself (`Chart.TakeChartshot()` in `OnBar`), which keeps
+`TrendAssessment/` free of cAlgo.
 
 ## Design patterns
 
@@ -106,7 +138,7 @@ Each pattern is also named in a `Pattern:` comment on the class that plays it.
 | Pattern | Where | Why |
 | --- | --- | --- |
 | Composition Root | `VWAPTradeAI` (the Robot) | The one place the pipelines are created and wired together, so each class receives what it needs instead of reaching for it. |
-| Adapter | `CAlgoBroker : IBroker`, `CAlgoSymbolModel : ISymbolModel` | cAlgo types stop at the edge, so orders, sizing and the CSV are unit tested with fakes. |
+| Adapter | `CAlgoBroker : IBroker`, `CAlgoSymbolModel : ISymbolModel`, `TrendAssessmentClient` | cAlgo and HTTP types stop at the edge, so orders, sizing, the CSV and the AI flow are unit tested with fakes. |
 | Observer | `OrderExecutor.PositionOpened` / `PositionClosed`, wired in `OnStart` | The CSV and the chart screenshot follow a trade without the executor knowing them. |
 | Strategy (as a table) | `LevelPatternMatcher` rules, `TradeCsvColumns` | Each row carries its own behaviour; adding a pattern or a column is one line, and the two sides/the header and rows cannot drift apart. |
 
@@ -122,6 +154,13 @@ Conventions worth knowing before renaming things:
 - **`SignalSideModel` (None/Buy/Sell) and `TradeDirectionModel` (Long/Short) are deliberately
   separate.** The first is what a bar suggests, and may be None; the second is a side an order is
   actually sent with, and cannot be. Merging them would push `None` into the order layer.
+- **Threads.** Strategy state (`OrderExecutor`, the broker, the chart) is only touched on the cBot
+  thread. With the AI filter on, the HTTP wait runs on the thread pool and comes back through
+  `BeginInvokeOnMainThread`; never call a trading or chart API from that continuation directly,
+  and never wait for the model on the cBot thread.
+- **The AI never decides a trade's terms.** It only answers whether the visible chart supports
+  the signal's side. Entry price, stop, target, sizing and every order gate stay in `Orders/`, and
+  the quote is read after the model has answered, never before. Confidence is logged, not used.
 - `HanJinSignals26` keeps its name because it *is* a faithful port of that Pine library
   (`docs/design/hanjin-signals-26.md`); it changes when the original does.
 
@@ -146,6 +185,10 @@ Pure (framework-independent) helpers are unit-tested with xUnit under `tests/`:
 ```bash
 ./scripts/test.sh                                       # build cBot + run all tests
 dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"      # tests only
+
+# Opt-in: the cBot's HTTP client against the real TrendAssessmentModel service (must be running)
+RUN_AI_SERVICE_TESTS=1 AI_SERVICE_TEST_PNG=/path/to/chart.png \
+  dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj" --filter "FullyQualifiedName~TrendAssessmentServiceTests"
 ```
 
 The test project is intentionally **not** part of the `.sln` (which cTrader builds) and
@@ -174,7 +217,9 @@ in the cTrader UI and the optimizer. Trading actions and market data come from i
 members (`ExecuteMarketOrder`, `Positions`, `Symbol`, `Bars`, `MarketSeries`, `Print`, etc.).
 
 The bot runs with `[Robot(AccessRights = AccessRights.FullAccess)]` because it writes the trade
-CSV and the entry screenshots under `~/Documents`. Don't add network or other file access on the strength of it.
+CSV and the entry screenshots under `~/Documents` and, with the AI filter on, calls the
+TrendAssessmentModel service on this machine. Don't add other network or file access on the
+strength of it.
 
 ## Conventions
 

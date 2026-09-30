@@ -4,6 +4,7 @@ Working rules for coding agents in this repository. For deeper reference:
 
 - `CLAUDE.md`: the strategy rules and the module map.
 - `README.md`: every parameter, and where the trade CSV is written.
+- `docs/architecture.md`: the AI trend filter, its HTTP contract and the diagrams.
 - `docs/debugging-in-rider.md`: stepping through the running cBot on macOS.
 
 ## What this is
@@ -19,12 +20,18 @@ Once per closed bar:
    `LevelPatternMatcher` with `HanJinSignals26`.
 3. **Mark.** `SignalMarkers` marks the signal on the chart; the marker stays whether or not the
    order goes out.
-4. **Order gates**, in order: open position on this level, price still between the signal's stop
+4. **AI trend gate, only with `启用AI趋势过滤` on** (off by default; then step 5 follows at once).
+   `OnBar` takes `Chart.TakeChartshot()` *before* step 3 draws the marker and hands the picture to
+   `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
+   answers some seconds later; back on the cBot thread the signal must still be the last closed
+   bar and pass `TrendDirectionGate` (Buy + UP, or Sell + DOWN, and a daily VWAP that is not
+   FLAT). Anything else, including any failure, is a logged rejection.
+5. **Order gates**, in order: open position on this level, price still between the signal's stop
    and target, sizing (`OrderPlanner`), broker. There is no time-of-day or weekday gate.
    `OrderExecutor.TryEnter` returns whether an order went out, and logs why not. The stop and the
-   target come from the signal; the entry is the ask/bid as the next bar opens, and the size
-   follows from the actual entry-to-stop distance.
-5. **Record:** a trade gets a trade CSV row and a numbered chart screenshot when it opens, and
+   target come from the signal; the entry is the ask/bid when `TryEnter` runs (as the next bar
+   opens, or after the AI's answer), and the size follows from the actual entry-to-stop distance.
+6. **Record:** a trade gets a trade CSV row and a numbered chart screenshot when it opens, and
    another CSV row when it closes. Both are subscribers to `OrderExecutor.PositionOpened` /
    `PositionClosed`, wired in `OnStart`.
 
@@ -32,9 +39,22 @@ Once per closed bar:
 
 Breaking one of these changes trading results silently, so treat them as fixed:
 
-- **A signal trades at once, and only once.** `OnBar` is the only caller of
-  `OrderExecutor.TryEnter`, with the signal of the bar that just closed. Nothing waits for a
-  person, and the bot has no network traffic.
+- **With the AI filter off, a signal trades at once, and only once.** `OnBar` calls
+  `OrderExecutor.TryEnter` with the signal of the bar that just closed. Nothing waits, and the bot
+  has no network traffic. Off is the default, and this path must stay exactly as it is.
+- **With the AI filter on, the only other caller of `TryEnter` is `AiTrendFilter`**, on the cBot
+  thread, for a signal that is still the last closed bar. It is fail closed: a missing picture, a
+  failed or invalid answer, an unreadable chart or a stale signal never trades.
+- **The AI's picture is taken before the signal's marker is drawn.** A model that sees the
+  strategy's own BUY/SELL mark is biased towards it. Don't reorder those two lines in `OnBar`.
+- **The model wait never runs on the cBot thread**, and nothing but the final
+  `BeginInvokeOnMainThread` continuation touches cTrader. No price is read before the wait:
+  `TryEnter` reads the Ask/Bid afterwards.
+- **The AI gate is `TrendDirectionGate` and nothing more.** Don't add a confidence threshold or a
+  "VWAP must slope the signal's way" rule; both were considered and left out on purpose.
+- **This cBot never talks to Ollama.** The model, the prompt and the JSON schema belong to the
+  TrendAssessmentModel service; here there is only `TrendAssessmentClient` and its contract.
+- **The AI filter is live/demo only.** `StartupCheck` refuses it in backtests and optimization.
 - **The signal bar is the last closed bar, `Bars.Count - 2`.** `OnBar()` fires when a new bar
   opens. Never use `Bars.Count - 1` for signal logic.
 - **M5 only.** The strategy is specified on M5. `StartupCheck` stops the bot on any other timeframe.
@@ -64,6 +84,7 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 | `TradeLog/` | Trade CSV (`TradeCsvColumns`, `TradeCsvLogger`, `TradeCsvFile`, `CsvCell`, `TradeResultR`). |
 | `Chart/` | `VwapLines`, `SignalMarkers`. Drawing only. |
 | `Chartshots/` | `EntryChartshots` (takes `Chart.TakeChartshot()` per entry), `ChartshotFolder` (`~/Documents/TakeChartshot`, numbered `1.png`, `2.png`, …; pure). |
+| `TrendAssessment/` | The optional AI trend filter, all pure: `AiTrendFilter` (the flow), `TrendDirectionGate` (the rule), `TrendAssessmentClient` and `TrendAssessmentReply` (the service's HTTP contract), `TrendAssessmentRecorder` (`~/Documents/TrendAssessment`). |
 | `Models/` | Every data type, suffixed `Model`. Pure data only. |
 
 The design patterns in use (Composition Root, Adapter, Observer, Strategy as a table), where each
@@ -128,7 +149,10 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
 - **The test project** (`net10.0`, xUnit) isn't in the solution. It links the pure source files
   with `<Compile Include>`, never a project reference. Link every new pure file there.
 - **Runtime checks** happen in cTrader: build → refresh the bot in cTrader → run it on a demo
-  account, or backtest it → read the Log tab and the CSVs.
+  account, or backtest it → read the Log tab and the CSVs. The AI filter can only be checked on a
+  demo or live chart, with the TrendAssessmentModel service running and the chart visible.
+- **The AI service contract** is checked by two opt-in tests (`TrendAssessmentServiceTests`,
+  `RUN_AI_SERVICE_TESTS=1`), which need the service running; see `CLAUDE.md`.
 
 ## cTrader behaviour worth knowing
 
@@ -136,11 +160,13 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
   instances keep their saved values; recreate the instance to see a new default.
 - **Instances:** each running instance (symbol/timeframe) has its own state and its own `OnStart`.
 - **Access rights:** `AccessRights.FullAccess` is required because the bot writes its CSVs
-  and entry screenshots. Output goes under `~/Documents`:
+  and entry screenshots and, with the AI filter on, calls the AI service on this machine. Output
+  goes under `~/Documents`:
   - `trading_reports` for backtests
   - `simulate_trading_reports` for demo
   - `release_trading_reports` for live
   - `TakeChartshot` for the entry screenshots, whatever the running mode
+  - `TrendAssessment` for the AI's input pictures and answers, only with `保存AI评估截图` on
   
   The trade CSV is `VWAPTradeAIs.csv` by default. If cTrader reports a sync conflict over full
   access, keep the local source.
