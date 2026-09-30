@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- The cBot project does not enable nullable analysis; linked cBot sources are compiled
+         here under the same rules so they do not raise warnings they never raise in the cBot. -->
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
+  </ItemGroup>
+
+  <!-- Unit tests for the cBot's pure (cAlgo-free) logic. The classes under test are LINKED in
+       below (never a ProjectReference) so the tests never pull in the cTrader.Automate /
+       cAlgo.API dependency. Only cAlgo-free files may be linked here: never the Robot, the
+       Chart/ drawing, the Bars readers (VwapSeries, SignalDetector) or the Broker/ adapters. -->
+  <ItemGroup Label="Behavior under test">
+    <Compile Include="..\..\DayTradeSelf\StartupCheck.cs" Link="StartupCheck.cs" />
+    <Compile Include="..\..\DayTradeSelf\Approval\ApprovalDesk.cs" Link="Approval\ApprovalDesk.cs" />
+    <Compile Include="..\..\DayTradeSelf\Approval\DecisionInbox.cs" Link="Approval\DecisionInbox.cs" />
+    <Compile Include="..\..\DayTradeSelf\Approval\PendingTradeSignals.cs" Link="Approval\PendingTradeSignals.cs" />
+    <Compile Include="..\..\DayTradeSelf\Approval\TradeApproval.cs" Link="Approval\TradeApproval.cs" />
+    <Compile Include="..\..\DayTradeSelf\Notifications\RelayEnvironments.cs" Link="Notifications\RelayEnvironments.cs" />
+    <Compile Include="..\..\DayTradeSelf\Notifications\TradeMessages.cs" Link="Notifications\TradeMessages.cs" />
+    <Compile Include="..\..\DayTradeSelf\Notifications\TradeNotificationClient.cs" Link="Notifications\TradeNotificationClient.cs" />
+    <Compile Include="..\..\DayTradeSelf\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
+    <Compile Include="..\..\DayTradeSelf\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
+    <Compile Include="..\..\DayTradeSelf\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />
+    <Compile Include="..\..\DayTradeSelf\Signals\HanJinSignals26.cs" Link="Signals\HanJinSignals26.cs" />
+    <Compile Include="..\..\DayTradeSelf\Signals\LevelPatternMatcher.cs" Link="Signals\LevelPatternMatcher.cs" />
+    <Compile Include="..\..\DayTradeSelf\Signals\VwapStack.cs" Link="Signals\VwapStack.cs" />
+    <Compile Include="..\..\DayTradeSelf\TradeLog\CsvCell.cs" Link="TradeLog\CsvCell.cs" />
+    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvColumns.cs" Link="TradeLog\TradeCsvColumns.cs" />
+    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvFile.cs" Link="TradeLog\TradeCsvFile.cs" />
+    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeCsvLogger.cs" Link="TradeLog\TradeCsvLogger.cs" />
+    <Compile Include="..\..\DayTradeSelf\TradeLog\TradeResultR.cs" Link="TradeLog\TradeResultR.cs" />
+    <Compile Include="..\..\DayTradeSelf\Vwap\VwapCalculator.cs" Link="Vwap\VwapCalculator.cs" />
+    <Compile Include="..\..\DayTradeSelf\Vwap\VwapPeriod.cs" Link="Vwap\VwapPeriod.cs" />
+  </ItemGroup>
+
+  <!-- The ports the pure classes depend on. Their cAlgo adapters (CAlgoBroker, CAlgoSymbolModel)
+       are intentionally excluded; the tests supply fakes. -->
+  <ItemGroup Label="Ports">
+    <Compile Include="..\..\DayTradeSelf\Broker\IBroker.cs" Link="Broker\IBroker.cs" />
+    <Compile Include="..\..\DayTradeSelf\Broker\ISymbolModel.cs" Link="Broker\ISymbolModel.cs" />
+  </ItemGroup>
+
+  <!-- Every data type: Models/ holds only pure data. -->
+  <ItemGroup Label="Models">
+    <Compile Include="..\..\DayTradeSelf\Models\*.cs" LinkBase="Models" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,36 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+
+# User-specific files
+*.user
+*.suo
+*.rsuser
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+packages/
+
+# cTrader / generated files
+*.algo
+# Local backtest config & secrets (auto-test.sh)
+scripts/auto-test.env
+*.pwd
+__pycache__
+.env
+scripts/.env
+node_modules
+rustwebsocket/target
+android
