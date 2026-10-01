@@ -29,8 +29,11 @@ daily VWAP must not be FLAT. The model runs behind the separate **TrendAssessmen
 that service's HTTP contract, never Ollama, the prompt or the model. The answer takes several
 seconds, so it is awaited off the cBot thread and applied back on it
 (`BeginInvokeOnMainThread`). It is fail closed: no picture, no valid answer, an unreadable chart
-or a signal that went stale all mean no trade. The filter is live/demo only; `StartupCheck`
-refuses it in a backtest or optimization. The full design is in `docs/architecture.md`.
+or a signal that went stale all mean no trade. In a **visual backtest** the filter runs too, but
+the other way round: the backtest's clock would not wait, so `AiTrendFilter.AssessAndWait` holds
+the cBot thread until the answer is in (the backtest pauses), after a one-second pause that lets
+the backtest's chart catch up before the picture. Non-visual backtests and optimization have no
+chart, so `StartupCheck` refuses the filter there. The full design is in `docs/architecture.md`.
 
 **The stop and the target belong to the signal; the entry is the market price.** The stop sits
 `StopOffsetTicks` beyond the pattern's own stop; the target is `TakeProfitR × R` measured from the
@@ -58,7 +61,9 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
   (**before** the marker, so the model never sees the strategy's own mark) → `SignalMarkers.Draw`
   → `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
   `AiTrendFilter.Complete` → signal still the last closed bar? → `TrendDirectionGate` →
-  `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment;
+  `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment. In a visual backtest the same
+  steps run, except that the picture follows a one-second pause and `AiTrendFilter.AssessAndWait`
+  replaces `Submit`: it waits for the answer and completes before `OnBar` returns;
 - per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
   (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
 
@@ -98,9 +103,10 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   `TrendDirectionGate` is the pure PASS/REJECT rule. `TrendAssessmentClient` is the HTTP link to
   the TrendAssessmentModel service (`POST /v1/assessments`, `POST /v1/warmup`) and never throws
   for a failed request; `TrendAssessmentReply` reads the service's reply strictly into a
-  `TrendAssessmentResultModel`. `AiTrendFilter` is the flow: `Submit` sends the picture and
+  `TrendAssessmentResultModel`. `AiTrendFilter` is the flow: `Submit` (live, demo) sends the picture and
   returns, the answer comes back through `BeginInvokeOnMainThread`, and only a signal that is
-  still the last closed bar and passes the gate goes to `TryEnter`. `TrendAssessmentRecorder`
+  still the last closed bar and passes the gate goes to `TryEnter`; `AssessAndWait` (visual
+  backtest) does the same but waits for the answer, so the backtest pauses. `TrendAssessmentRecorder`
   (only with `保存AI评估截图` on) keeps the exact PNG and a JSON file per assessment under
   `~/Documents/TrendAssessment`, which is never cleared. This is a different picture from
   `Chartshots/`: that one is taken after the entry, with the marker, as a trade record.
@@ -155,9 +161,11 @@ Conventions worth knowing before renaming things:
   separate.** The first is what a bar suggests, and may be None; the second is a side an order is
   actually sent with, and cannot be. Merging them would push `None` into the order layer.
 - **Threads.** Strategy state (`OrderExecutor`, the broker, the chart) is only touched on the cBot
-  thread. With the AI filter on, the HTTP wait runs on the thread pool and comes back through
-  `BeginInvokeOnMainThread`; never call a trading or chart API from that continuation directly,
-  and never wait for the model on the cBot thread.
+  thread. Live and demo, with the AI filter on, the HTTP wait runs on the thread pool and comes
+  back through `BeginInvokeOnMainThread`; never call a trading or chart API from that continuation
+  directly, and never wait for the model on the cBot thread. The one deliberate exception is the
+  visual backtest, where `AssessAndWait` blocks the cBot thread so the backtest's clock stands
+  still; the request itself still runs on the thread pool, so the wait cannot deadlock.
 - **The AI never decides a trade's terms.** It only answers whether the visible chart supports
   the signal's side. Entry price, stop, target, sizing and every order gate stay in `Orders/`, and
   the quote is read after the model has answered, never before. Confidence is logged, not used.

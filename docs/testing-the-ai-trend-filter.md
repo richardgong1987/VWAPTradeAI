@@ -203,8 +203,9 @@ inside cTrader, so check them first.
 | 5 | The decision matches the rule | Compare the log line with the table below | Buy passes only with `UP`, Sell only with `DOWN`, and never with `FLAT` |
 | 6 | No service means no trade | Stop the service (Ctrl+C) and wait for a signal, or start the bot with the service stopped | `AI trend unavailable ... Trade rejected`, or at start-up `AI service warm-up failed`. The bot keeps running |
 | 7 | A hidden chart means no trade | Switch to another chart tab and wait for a signal | `AI trend unavailable ... The chart is not visible ... Trade rejected` |
-| 8 | Backtests refuse the filter | Start a backtest with `启用AI趋势过滤` on | `参数有误，已停止：AI趋势过滤只支持实盘和模拟盘` and the bot stops |
-| 9 | Off means unchanged | Run a backtest with `启用AI趋势过滤` off | It trades as it always did; no `AI trend` lines at all |
+| 8 | A visual backtest waits for the model | See [Testing in a visual backtest](#testing-in-a-visual-backtest) | The backtest stands still for a few seconds at each signal, then carries on |
+| 9 | Runs without a chart refuse the filter | Start a non-visual backtest or an optimization with `启用AI趋势过滤` on | `参数有误，已停止：AI趋势过滤需要能截图的图表` and the bot stops |
+| 10 | Off means unchanged | Run a backtest with `启用AI趋势过滤` off | It trades as it always did; no `AI trend` lines at all |
 
 The rule for check 5:
 
@@ -215,6 +216,47 @@ The rule for check 5:
 
 Everything else is rejected: `SIDEWAYS`, a trend against the signal, a `FLAT` daily VWAP, an
 unreadable picture, and any failure.
+
+## Testing in a visual backtest
+
+A visual backtest is the quickest way to see how the model judges many charts: instead of
+waiting days for live signals, a few months of history produce them in one sitting.
+
+1. Start the service (Step 1) and warm it up (Step 2).
+2. In cTrader, open the backtest for the cBot and tick **Visual mode**. A non-visual backtest
+   has no chart to photograph and the bot refuses to start.
+3. Set `启用AI趋势过滤` and `保存AI评估截图` to true, as in Step 4.
+4. Start the backtest. The log shows, besides the Step 5 lines:
+
+   ```text
+   Visual backtest: the backtest pauses at every signal until the AI has answered, several seconds each.
+   ```
+
+5. At each signal the backtest stands still for a few seconds, then logs one of the
+   `AI trend ...` lines from Step 6 and carries on. Nothing else is different from Step 6.
+
+What differs from live:
+
+- **The backtest waits for the model.** That is deliberate: a backtest's clock does not wait for
+  anyone, so without the wait the answer would arrive many bars too late. Expect about one second
+  plus the model's 5 to 10 seconds per signal; a backtest with 200 signals takes over half an hour
+  longer.
+- **A passed signal enters at the bar's opening price,** because simulated time stands still while
+  the model thinks. Live, the entry is a few seconds later.
+
+**Check the pictures first.** A fast visual backtest has been seen to draw its chart behind the
+bot: the cBot's own trade screenshots showed a chart about an hour old, and once an empty one. The
+bot now pauses one second before the AI's picture to let the chart catch up, but that second is a
+guess. After the first few signals, open the newest pictures in `~/Documents/TrendAssessment` and
+compare each with the `signal_bar_time` in its `.json`:
+
+- The chart ends at the signal's bar: good, the backtest's answers are worth reading.
+- The chart ends earlier, or is empty: the model judged an old chart, and those answers mean
+  nothing. Lower the backtest's speed and try again. If even a slow speed does not help, tell me:
+  the pause needs to be longer.
+
+Every assessment of the backtest is recorded like a live one, so the pictures and answers go
+straight into [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md).
 
 ## Reading the recordings
 
@@ -248,7 +290,8 @@ picture, decide what you would have answered, and compare. When the model is wro
 | `AI trend unavailable ... HTTP 502 model_unavailable` | Ollama is not running, or the model is missing | Start Ollama; `ollama list` |
 | `AI trend unreadable` | The model saw no candles or no solid yellow daily VWAP line | Look at the recorded picture: is the chart empty, scrolled away, or the VWAP off screen? |
 | `AI trend rejected ... Signal expired` | The answer came after the next bar had closed | Should not happen with a 30 second timeout; check the machine was not asleep |
-| `参数有误，已停止：AI趋势过滤只支持实盘和模拟盘` | The filter is on in a backtest or optimization | Turn `启用AI趋势过滤` off for backtests |
+| `参数有误，已停止：AI趋势过滤需要能截图的图表` | The filter is on in a non-visual backtest or an optimization | Tick **Visual mode** for the backtest, or turn `启用AI趋势过滤` off |
+| Backtest pictures end before the signal bar, or are empty | The backtest's chart is drawn behind the bot | Slow the backtest down; see the next section |
 | `参数有误，已停止：AI服务地址无效` | The address is not an `http://` URL | Use `http://127.0.0.1:8787` |
 | No `AI trend` lines at all | No signal yet, or the filter is off on this instance | Check the start-up log for `AI trend filter on` |
 | The model's answer looks wrong | The model, not the plumbing | See the correcting guide linked above |

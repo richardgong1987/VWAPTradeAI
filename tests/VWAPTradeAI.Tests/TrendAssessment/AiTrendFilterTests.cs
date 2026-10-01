@@ -206,5 +206,62 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
             Assert.Contains("\"outcome\": \"UNAVAILABLE\"", json);
             Assert.Contains("\"gate\": \"REJECT\"", json);
         }
+
+        // In a backtest the decision must be made before OnBar returns, or the backtest's clock runs
+        // on past the bar the signal belongs to.
+
+        [Fact]
+        public void in_a_backtest_a_passed_signal_is_entered_before_assess_and_wait_returns() {
+            var pending = new TaskCompletionSource<TrendAssessmentResultModel>();
+            _answer = () => pending.Task;
+            // The model answers a moment later, on another thread, as the real service does.
+            _ = Task.Run(async () => {
+                await Task.Delay(50);
+                pending.SetResult(TestAssessment.Of(TrendModel.Up, DailyVwapDirectionModel.Rising));
+            });
+
+            Filter().AssessAndWait(_signal, ChartPng);
+
+            Assert.Same(_signal, Assert.Single(_entered));
+            Assert.Empty(_mainThread); // nothing was left for later
+            Assert.Contains(_log, line => line.StartsWith("AI trend accepted | Signal: Buy | Trend: UP"));
+        }
+
+        [Fact]
+        public void in_a_backtest_a_rejected_signal_is_decided_before_assess_and_wait_returns() {
+            Answer(TestAssessment.Of(TrendModel.Sideways, DailyVwapDirectionModel.Rising));
+
+            Filter().AssessAndWait(_signal, ChartPng);
+
+            Assert.Empty(_entered);
+            Assert.Contains(_log, line => line.Contains("Rejected: Trend is SIDEWAYS"));
+        }
+
+        [Fact]
+        public void in_a_backtest_a_failed_request_is_a_rejection_and_does_not_escape() {
+            _answer = () => throw new InvalidOperationException("boom");
+
+            Filter().AssessAndWait(_signal, ChartPng);
+
+            Assert.Empty(_entered);
+            Assert.Contains(_log, line => line.Contains("AI trend unavailable") && line.Contains("boom"));
+        }
+
+        [Fact]
+        public void in_a_backtest_without_a_picture_nothing_is_asked() {
+            Filter().AssessAndWait(_signal, chartPng: null);
+
+            Assert.Empty(_requests);
+            Assert.Empty(_entered);
+        }
+
+        [Fact]
+        public void in_a_backtest_the_assessment_is_recorded_like_any_other() {
+            Filter(new TrendAssessmentRecorder(_directory, "XAUUSD")).AssessAndWait(_signal, ChartPng);
+
+            string picturePath = Assert.Single(Directory.GetFiles(_directory, "*.png"));
+            Assert.Equal(ChartPng, File.ReadAllBytes(picturePath));
+            Assert.Contains("\"order_placed\": true", File.ReadAllText(Path.ChangeExtension(picturePath, ".json")));
+        }
     }
 }

@@ -23,14 +23,16 @@ public static class StartupCheck {
     }
 
     // With the AI trend filter off, nothing is checked: the cBot then has no AI dependency at all.
-    public static string FindAiFilterError(bool isEnabled, bool isRealTime, string serviceUrl, int timeoutSeconds) {
+    // hasChart: the running mode shows a chart that can be photographed: live, demo and visual
+    // backtests do; non-visual backtests and optimization do not.
+    public static string FindAiFilterError(bool isEnabled, bool hasChart, string serviceUrl, int timeoutSeconds) {
         if (!isEnabled)
             return null;
 
-        // A backtest's clock does not wait for a model that needs seconds, and its chart picture lags
-        // behind the cBot, so the filter would judge the wrong bar. Optimization has no chart at all.
-        if (!isRealTime)
-            return "AI趋势过滤只支持实盘和模拟盘：回测、优化请关闭「启用AI趋势过滤」。";
+        // Without a chart there is no picture: every signal would be rejected, which would look
+        // like a strategy that never trades.
+        if (!hasChart)
+            return "AI趋势过滤需要能截图的图表：请用可视化回测（Visual mode），或在非可视化回测、优化中关闭「启用AI趋势过滤」。";
 
         bool isHttpUrl = Uri.TryCreate(serviceUrl?.Trim(), UriKind.Absolute, out Uri url) &&
                          (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps);

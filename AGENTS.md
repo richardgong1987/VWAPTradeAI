@@ -25,7 +25,9 @@ Once per closed bar:
    `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
    answers some seconds later; back on the cBot thread the signal must still be the last closed
    bar and pass `TrendDirectionGate` (Buy + UP, or Sell + DOWN, and a daily VWAP that is not
-   FLAT). Anything else, including any failure, is a logged rejection.
+   FLAT). Anything else, including any failure, is a logged rejection. In a visual backtest,
+   `AiTrendFilter.AssessAndWait` takes the place of `Submit` and waits for the answer, so the
+   backtest pauses at each signal.
 5. **Order gates**, in order: open position on this level, price still between the signal's stop
    and target, sizing (`OrderPlanner`), broker. There is no time-of-day or weekday gate.
    `OrderExecutor.TryEnter` returns whether an order went out, and logs why not. The stop and the
@@ -47,14 +49,17 @@ Breaking one of these changes trading results silently, so treat them as fixed:
   failed or invalid answer, an unreadable chart or a stale signal never trades.
 - **The AI's picture is taken before the signal's marker is drawn.** A model that sees the
   strategy's own BUY/SELL mark is biased towards it. Don't reorder those two lines in `OnBar`.
-- **The model wait never runs on the cBot thread**, and nothing but the final
-  `BeginInvokeOnMainThread` continuation touches cTrader. No price is read before the wait:
-  `TryEnter` reads the Ask/Bid afterwards.
+- **Live and demo, the model wait never runs on the cBot thread**, and nothing but the final
+  `BeginInvokeOnMainThread` continuation touches cTrader. In a visual backtest it is the opposite
+  on purpose: `AssessAndWait` holds the cBot thread so the backtest's clock cannot run past the
+  signal's bar. Either way no price is read before the wait: `TryEnter` reads the Ask/Bid
+  afterwards.
 - **The AI gate is `TrendDirectionGate` and nothing more.** Don't add a confidence threshold or a
   "VWAP must slope the signal's way" rule; both were considered and left out on purpose.
 - **This cBot never talks to Ollama.** The model, the prompt and the JSON schema belong to the
   TrendAssessmentModel service; here there is only `TrendAssessmentClient` and its contract.
-- **The AI filter is live/demo only.** `StartupCheck` refuses it in backtests and optimization.
+- **The AI filter needs a chart on screen:** live, demo and visual backtests. `StartupCheck`
+  refuses it in non-visual backtests and optimization, where there is nothing to photograph.
 - **The signal bar is the last closed bar, `Bars.Count - 2`.** `OnBar()` fires when a new bar
   opens. Never use `Bars.Count - 1` for signal logic.
 - **M5 only.** The strategy is specified on M5. `StartupCheck` stops the bot on any other timeframe.
@@ -149,8 +154,9 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
 - **The test project** (`net10.0`, xUnit) isn't in the solution. It links the pure source files
   with `<Compile Include>`, never a project reference. Link every new pure file there.
 - **Runtime checks** happen in cTrader: build → refresh the bot in cTrader → run it on a demo
-  account, or backtest it → read the Log tab and the CSVs. The AI filter can only be checked on a
-  demo or live chart, with the TrendAssessmentModel service running and the chart visible.
+  account, or backtest it → read the Log tab and the CSVs. The AI filter can be checked on a
+  demo or live chart, or in a visual backtest, with the TrendAssessmentModel service running and
+  the chart visible.
 - **The AI service contract** is checked by two opt-in tests (`TrendAssessmentServiceTests`,
   `RUN_AI_SERVICE_TESTS=1`), which need the service running; see `CLAUDE.md`.
 

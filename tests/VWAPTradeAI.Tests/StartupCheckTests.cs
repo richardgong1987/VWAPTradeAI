@@ -32,25 +32,26 @@ namespace VWAPTradeAI.Tests {
             Assert.Contains("订单标签", Check(isM5: false, label: ""));
         }
 
-        private static string CheckAi(bool isEnabled = true, bool isRealTime = true, string url = "http://127.0.0.1:8787",
+        private static string CheckAi(bool isEnabled = true, bool hasChart = true, string url = "http://127.0.0.1:8787",
             int timeoutSeconds = 30) =>
-            StartupCheck.FindAiFilterError(isEnabled, isRealTime, url, timeoutSeconds);
+            StartupCheck.FindAiFilterError(isEnabled, hasChart, url, timeoutSeconds);
 
         [Fact]
-        public void the_ai_filter_on_a_live_or_demo_chart_with_the_defaults_reports_nothing() {
+        public void the_ai_filter_with_a_chart_and_the_defaults_reports_nothing() {
+            // Live, demo and visual backtests all have a chart to take a picture of.
             Assert.Null(CheckAi());
         }
 
         [Fact]
-        public void the_ai_filter_is_refused_in_a_backtest_or_optimization() {
-            // A backtest's clock does not wait for the model, and its chart picture lags the cBot.
-            Assert.Contains("只支持实盘和模拟盘", CheckAi(isRealTime: false));
+        public void the_ai_filter_is_refused_where_there_is_no_chart_to_photograph() {
+            // Non-visual backtests and optimization: every signal would be rejected for want of a picture.
+            Assert.Contains("可视化回测", CheckAi(hasChart: false));
         }
 
         [Fact]
-        public void with_the_ai_filter_off_a_backtest_needs_nothing_from_the_ai_settings() {
+        public void with_the_ai_filter_off_a_run_without_a_chart_needs_nothing_from_the_ai_settings() {
             // Off, the cBot must behave exactly as before, whatever the AI parameters hold.
-            Assert.Null(CheckAi(isEnabled: false, isRealTime: false, url: "", timeoutSeconds: 0));
+            Assert.Null(CheckAi(isEnabled: false, hasChart: false, url: "", timeoutSeconds: 0));
         }
 
         [Theory]

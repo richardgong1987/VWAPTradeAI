@@ -10,11 +10,16 @@ namespace cAlgo.Robots;
 public delegate bool TryEnterOrder(SignalModel signal, out string rejectReason);
 
 // The optional AI gate between a detected signal and OrderExecutor. The model needs several
-// seconds, so nothing here waits on the cBot thread:
+// seconds, so live nothing here waits on the cBot thread:
 //
 //   Submit     cBot thread   send the chart picture for assessment, return at once
 //   (wait)     thread pool   the HTTP request to the local AI service
 //   Complete   cBot thread   signal still current? → TrendDirectionGate → TryEnter
+//
+// A backtest is the opposite case. Its clock does not wait for anyone, so an answer that arrives
+// seconds later in real time would belong to a bar long gone. AssessAndWait therefore holds the
+// cBot thread until the answer is in, which pauses the backtest, and decides on the bar the signal
+// belongs to.
 //
 // Fail closed: no picture, no valid answer or a signal that has gone stale all mean no trade, and
 // the log says why. A passed signal goes to OrderExecutor.TryEnter unchanged, which reads the
@@ -42,34 +47,56 @@ public class AiTrendFilter {
         _log = log;
     }
 
-    // chartPng: the chart as the model should see it, taken before the signal's own marker was
-    // drawn. Null when cTrader could not take it (the chart is not visible).
+    // Live and demo. chartPng: the chart as the model should see it, taken before the signal's own
+    // marker was drawn. Null when cTrader could not take it (the chart is not visible).
     public void Submit(SignalModel signal, byte[] chartPng) {
+        string requestId = Start(signal, chartPng);
+
+        if (requestId != null)
+            _ = AssessThenCompleteAsync(signal, chartPng, requestId);
+    }
+
+    // Visual backtest: the same decision, but the answer is awaited here, on the cBot thread.
+    public void AssessAndWait(SignalModel signal, byte[] chartPng) {
+        string requestId = Start(signal, chartPng);
+
+        if (requestId == null)
+            return;
+
+        var stopwatch = Stopwatch.StartNew();
+        // Run on the thread pool, so the request never needs the thread that is waiting for it.
+        TrendAssessmentResultModel assessment = Task.Run(() => AskAsync(requestId, chartPng)).GetAwaiter().GetResult();
+        Complete(signal, chartPng, requestId, assessment, stopwatch.ElapsedMilliseconds);
+    }
+
+    // The request ID, or null when there is nothing to send.
+    private string Start(SignalModel signal, byte[] chartPng) {
         if (chartPng == null) {
             _log($"AI trend unavailable | Signal: {signal.Level.Side} | Reason: The chart is not visible, so there is no picture to assess | " +
                  "Trade rejected");
-            return;
+            return null;
         }
 
         string requestId = Guid.NewGuid().ToString("N");
         _log($"AI trend requested | Signal: {signal.Level.Side} {signal.Label} | RequestId: {requestId}");
-        _ = AssessThenCompleteAsync(signal, chartPng, requestId);
+        return requestId;
     }
 
     private async Task AssessThenCompleteAsync(SignalModel signal, byte[] chartPng, string requestId) {
         var stopwatch = Stopwatch.StartNew();
-        TrendAssessmentResultModel assessment;
-
-        // Whatever goes wrong while asking, the signal must end as a logged rejection, never as a
-        // lost task or a trade.
-        try {
-            assessment = await _assess(requestId, chartPng).ConfigureAwait(false);
-        } catch (Exception error) {
-            assessment = TrendAssessmentResultModel.Unavailable($"The assessment request failed: {error.Message}");
-        }
-
+        TrendAssessmentResultModel assessment = await AskAsync(requestId, chartPng).ConfigureAwait(false);
         long elapsedMs = stopwatch.ElapsedMilliseconds;
         _runOnMainThread(() => Complete(signal, chartPng, requestId, assessment, elapsedMs));
+    }
+
+    // Whatever goes wrong while asking, the signal must end as a logged rejection, never as a lost
+    // task or a trade.
+    private async Task<TrendAssessmentResultModel> AskAsync(string requestId, byte[] chartPng) {
+        try {
+            return await _assess(requestId, chartPng).ConfigureAwait(false);
+        } catch (Exception error) {
+            return TrendAssessmentResultModel.Unavailable($"The assessment request failed: {error.Message}");
+        }
     }
 
     private void Complete(SignalModel signal, byte[] chartPng, string requestId, TrendAssessmentResultModel assessment, long elapsedMs) {

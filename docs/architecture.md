@@ -89,7 +89,7 @@ daily VWAP direction, or says the picture is not a usable chart.
 
 ![Signal to order](architecture-signal-to-order.svg)
 
-With the filter on, for each closed M5 bar (`OnBar`):
+With the filter on, live or demo, for each closed M5 bar (`OnBar`):
 
 1. `VwapSeries.Update` and `VwapLines.Draw`, as always.
 2. `SignalDetector.DetectOnClosedBar`. No signal: nothing else happens.
@@ -115,6 +115,12 @@ With the filter on, for each closed M5 bar (`OnBar`):
 
 Steps 3 and 4 are in that order on purpose. A model that sees the strategy's own BUY or SELL
 marker is nudged towards the answer the strategy hopes for, so the picture is taken first.
+
+In a visual backtest the steps are the same with two differences: step 3 follows a one-second
+pause that lets the backtest's chart catch up, and step 5 is `AiTrendFilter.AssessAndWait`, which
+waits for the answer instead of returning. Steps 6 to 11 then happen before `OnBar` returns, and
+step 7 needs no hand-off because the cBot thread never left. See
+[Backtest behavior](#backtest-behavior).
 
 With the filter off, steps 3 and 5 to 9 do not exist: after step 2 the marker is drawn and
 `TryEnter` is called at once.
@@ -226,12 +232,20 @@ unit tested without cTrader.
 
 Two rules follow:
 
-- Nothing waits for the model on the main thread. `AiTrendFilter.Submit` returns at once.
+- Live and demo, nothing waits for the model on the main thread. `AiTrendFilter.Submit` returns
+  at once.
 - The background work touches no cTrader API. It only produces a result; everything that reads
   the chart, the bars or the broker happens after the hand-off.
 
 The warm-up request at start-up follows the same pattern: it runs in the background and only its
 log line comes back to the main thread.
+
+**The visual backtest is the deliberate exception.** A backtest's clock does not wait: if
+`OnBar` returned at once, the backtest would run on through many bars while the model thinks, and
+the answer would belong to a chart that has moved on. So in a visual backtest
+`AiTrendFilter.AssessAndWait` holds the main thread until the answer is in. The backtest pauses,
+the gate and `TryEnter` run on the signal's own bar, and only then does `OnBar` return. The HTTP
+request still runs on the thread pool, so the waiting thread is never needed to finish it.
 
 ## HTTP contract
 
@@ -360,19 +374,31 @@ recorder, when on, can fail to write without affecting the trade.
 
 | | AI filter off | AI filter on |
 | --- | --- | --- |
-| Live | Supported | Supported |
-| Demo | Supported | Supported |
-| Visual backtest | Supported, unchanged | Not supported in v1: the cBot stops at start-up |
-| Non-visual backtest | Supported, unchanged | Not supported in v1: the cBot stops at start-up |
-| Optimization | Supported, unchanged | Not supported in v1: the cBot stops at start-up |
+| Live | Supported | Supported: the answer is awaited in the background |
+| Demo | Supported | Supported: the answer is awaited in the background |
+| Visual backtest | Supported, unchanged | Supported: the backtest pauses at each signal until the answer is in |
+| Non-visual backtest | Supported, unchanged | Refused at start-up: no chart to photograph |
+| Optimization | Supported, unchanged | Refused at start-up: no chart to photograph |
 
-`StartupCheck.FindAiFilterError` refuses to start with the filter on unless the running mode is
-real time. Two reasons:
+The visual backtest is how the model's judgement is tried on past charts. It differs from live in
+three ways:
 
-- A backtest's clock does not wait. The model needs seconds of real time, during which a backtest
-  runs through many bars, so the answer would belong to a chart that has moved on.
-- The chart picture lags behind the cBot in a backtest, and can be blank. Optimization and
-  non-visual backtests have no chart at all.
+- **It waits.** A backtest's clock does not wait for anyone, so `AiTrendFilter.AssessAndWait`
+  holds the cBot thread until the answer is in (see [Threading model](#threading-model)). Each
+  signal costs the model's few seconds of real time; a backtest with many signals takes
+  correspondingly longer.
+- **The entry is at the bar's opening price.** Simulated time stands still while the model thinks,
+  so a passed signal enters at the first tick of the bar, as it would with the filter off. Live,
+  it enters some seconds later.
+- **The picture may lag.** A fast visual backtest has been seen to draw its chart behind the cBot:
+  pictures taken at once showed a chart about an hour old, or an empty one. The cBot therefore
+  pauses one second before each picture to let the chart catch up. That second is an estimate,
+  not a measured figure, so with `保存AI评估截图` on, check that the recorded pictures end at the
+  signal's bar. If they do not, slow the backtest down.
+
+`StartupCheck.FindAiFilterError` refuses the filter where there is no chart: a non-visual backtest
+or an optimization would otherwise reject every signal for want of a picture, which looks like a
+strategy that never trades.
 
 With the filter off, the AI settings are not even validated, and every backtest and optimization
 behaves exactly as before.

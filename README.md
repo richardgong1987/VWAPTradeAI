@@ -79,9 +79,20 @@ the log says why.
 that moment and applies the usual order gates, stop, target and sizing. Expect the entry some
 seconds after the bar opens instead of at its first tick.
 
-**Live and demo only.** The bot refuses to start with the filter on in a backtest or an
-optimization: a backtest's clock does not wait for the model, and its chart picture lags behind
-the bot. With the filter off, backtests run exactly as before.
+**Live, demo and visual backtests.** The model needs a picture of the chart, so the filter works
+wherever there is a chart on screen:
+
+- **Live and demo:** the bot carries on while the model thinks, and the order goes out some
+  seconds after the bar opens.
+- **Visual backtest:** a backtest's clock does not wait for anyone, so here the bot waits: the
+  backtest pauses at every signal until the model has answered (several seconds each), and the
+  signal is decided on its own bar. This is the way to see how the model judges past charts. Check
+  the first recorded pictures: a fast visual backtest has been seen to draw its chart behind the
+  bot, and the bot pauses one second before each picture to let it catch up.
+- **Non-visual backtest and optimization:** there is no chart, so the bot refuses to start with the
+  filter on.
+
+With the filter off, every backtest and optimization runs exactly as before.
 
 **What must be running.** The model is served by a separate project,
 [TrendAssessmentModel](https://github.com/richardgong1987/TrendAssessmentModel), which this bot
@@ -135,7 +146,7 @@ The labels are the ones shown in cTrader.
 | **风控配置** | |
 | 止损偏移点数 | Ticks the stop sits beyond the pattern's stop level. |
 | **AI趋势判断** | |
-| 启用AI趋势过滤 | Off by default. On, a signal is traded only after the local AI service confirms the trend. Live and demo only. |
+| 启用AI趋势过滤 | Off by default. On, a signal is traded only after the local AI service confirms the trend. Live, demo and visual backtests. |
 | AI服务地址 | Where the TrendAssessmentModel service listens. Default `http://127.0.0.1:8787`. |
 | AI超时秒数 | How long to wait for one assessment before rejecting the signal. Default 30, at most 240. Keep it above the service's own limit (25 s). |
 | 保存AI评估截图 | Off by default. On, keeps the AI's input picture and its answer under `~/Documents/TrendAssessment`. |

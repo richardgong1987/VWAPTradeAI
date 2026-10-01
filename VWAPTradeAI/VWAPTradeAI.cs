@@ -53,11 +53,16 @@ public class VWAPTradeAI : Robot
     private TrendAssessmentClient _trendAssessmentClient; // null with the AI trend filter off
     private AiTrendFilter _aiTrendFilter; // null with the AI trend filter off
 
+    // A visual backtest draws its chart behind the cBot, and a picture taken at once has shown a
+    // chart many bars old, or empty. A short pause first lets the chart catch up. One second is an
+    // estimate, not a measured figure: the recorded AI pictures show whether it is enough.
+    private static readonly TimeSpan BacktestChartCatchUp = TimeSpan.FromSeconds(1);
+
     protected override void OnStart() {
         LaunchDebug();
+        bool hasChart = RunningMode == RunningMode.RealTime || RunningMode == RunningMode.VisualBacktesting;
         string error = StartupCheck.FindError(Bars.TimeFrame.Equals(TimeFrame.Minute5), Bars.TimeFrame.ToString(), OrderLabel) ??
-                       StartupCheck.FindAiFilterError(IsAiTrendFilterEnabled, RunningMode == RunningMode.RealTime, AiServiceUrl,
-                           AiTimeoutSeconds);
+                       StartupCheck.FindAiFilterError(IsAiTrendFilterEnabled, hasChart, AiServiceUrl, AiTimeoutSeconds);
 
         if (error != null) {
             Print("*****参数有误，已停止：{0}", error);
@@ -99,19 +104,31 @@ public class VWAPTradeAI : Robot
 
         // The AI's picture is taken before this signal's marker is drawn: a model that sees the
         // strategy's own BUY/SELL mark is nudged towards the answer the strategy hopes for.
-        byte[] unmarkedChartPng = isAiTrendFilterOn ? Chart.TakeChartshot() : null;
+        byte[] unmarkedChartPng = isAiTrendFilterOn ? TakeUnmarkedChartshot() : null;
 
         // The chart shows every signal, whether or not its order goes out.
         _signalMarkers.Draw(signal);
 
         if (isAiTrendFilterOn) {
-            // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
-            _aiTrendFilter.Submit(signal, unmarkedChartPng);
+            if (IsBacktesting)
+                // Pauses the backtest until the model has answered; the signal is decided on this bar.
+                _aiTrendFilter.AssessAndWait(signal, unmarkedChartPng);
+            else
+                // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
+                _aiTrendFilter.Submit(signal, unmarkedChartPng);
+
             return;
         }
 
         // The executor logs the gate that stopped an order, so the result needs nothing more here.
         _orderExecutor.TryEnter(signal, out _);
+    }
+
+    private byte[] TakeUnmarkedChartshot() {
+        if (IsBacktesting)
+            Thread.Sleep(BacktestChartCatchUp);
+
+        return Chart.TakeChartshot();
     }
 
     protected override void OnStop() {
@@ -168,6 +185,10 @@ public class VWAPTradeAI : Robot
         _trendAssessmentClient = new TrendAssessmentClient(new Uri(AiServiceUrl.Trim()), TimeSpan.FromSeconds(AiTimeoutSeconds));
         Print("*****AI trend filter on | Service: {0}, TimeoutSeconds: {1}, Recording: {2}", AiServiceUrl.Trim(), AiTimeoutSeconds,
             IsAiAssessmentRecorded);
+
+        // Said out loud, so a backtest that stands still at a signal is not mistaken for a hang.
+        if (IsBacktesting)
+            Print("*****Visual backtest: the backtest pauses at every signal until the AI has answered, several seconds each.");
 
         // Not awaited: loading the model takes seconds, and the outcome only goes to the log.
         _ = WarmUpAiServiceAsync(_trendAssessmentClient);
