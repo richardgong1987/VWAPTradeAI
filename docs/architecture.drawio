@@ -121,7 +121,7 @@
         <mxCell id="p2-1" value="" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;fillColor=#ffffff;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1180" height="1330" as="geometry" />
         </mxCell>
-        <mxCell id="p2-2" value="Signal to order (AI trend filter on)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="p2-2" value="Signal to order (AI trend filter on, live and demo)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1000" height="34" as="geometry" />
         </mxCell>
         <mxCell id="p2-3" value="The AI's picture is taken BEFORE the signal marker is drawn. The order is placed only after the model's answer, at the price of that moment." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
@@ -271,13 +271,16 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="p2-45" value="Later, when the position closes:&#10;PositionClosed  -&gt;  TradeCsvLogger.RecordClose" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="650" y="1204" width="490" height="60" as="geometry" />
+          <mxGeometry x="650" y="1230" width="490" height="56" as="geometry" />
         </mxCell>
         <mxCell id="p2-46" value="AI filter off (default)&#10;&#10;After the signal, the marker is drawn and OrderExecutor.TryEnter&#10;is called at once. No picture is taken for the AI and no request&#10;is sent: the steps in the other two lanes do not exist." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="650" y="900" width="490" height="110" as="geometry" />
+          <mxGeometry x="650" y="880" width="490" height="100" as="geometry" />
         </mxCell>
         <mxCell id="p2-47" value="Why the order of steps 1 and 2 matters&#10;&#10;A model that sees the strategy's own BUY / SELL marker is nudged&#10;towards the answer the strategy hopes for. The marker is still&#10;drawn for every signal, whatever the AI decides." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="650" y="1040" width="490" height="110" as="geometry" />
+          <mxGeometry x="650" y="995" width="490" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-48" value="Visual backtest&#10;&#10;The same steps, but the picture follows a one-second pause and Submit&#10;is AssessAndWait: the main thread waits for the answer, so the backtest&#10;stands still and the signal is decided on its own bar." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="650" y="1110" width="490" height="100" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
@@ -391,17 +394,17 @@
     </mxGraphModel>
   </diagram>
   <diagram id="04-page" name="4. Async and threading">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1260" pageHeight="640" math="0" shadow="0">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1260" pageHeight="760" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="p4-1" value="" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;fillColor=#ffffff;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1260" height="640" as="geometry" />
+          <mxGeometry x="0" y="0" width="1260" height="760" as="geometry" />
         </mxCell>
         <mxCell id="p4-2" value="Async and threading" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1000" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="p4-3" value="The 8-20 second inference never blocks OnBar. Only the cTrader main thread touches cTrader APIs." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p4-3" value="Live and demo: the 8-20 second inference never blocks OnBar. Only the cTrader main thread touches cTrader APIs." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="40" y="54" width="1000" height="24" as="geometry" />
         </mxCell>
         <mxCell id="p4-4" value="cTrader main thread" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;dashed=1;dashPattern=6 4;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
@@ -484,10 +487,13 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="p4-29" value="TrendAssessmentModel builds the request  -&gt;  Ollama  -&gt;  gemma3:27b inference&#10;-&gt;  validated assessment returned" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p4-29" value="Visual backtest, the deliberate exception: AiTrendFilter.AssessAndWait holds the main thread until the answer is in,&#10;so the backtest's clock stands still and the signal is decided on its own bar. The request still runs in the background,&#10;so the waiting thread is never needed to finish it." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="1180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-30" value="TrendAssessmentModel builds the request  -&gt;  Ollama  -&gt;  gemma3:27b inference&#10;-&gt;  validated assessment returned" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="420" y="510" width="520" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p4-30" value="request" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="p4-22" target="p4-29">
+        <mxCell id="p4-31" value="request" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="p4-22" target="p4-30">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="485" y="450" />
@@ -495,7 +501,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="p4-31" value="response" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.75;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="p4-29" target="p4-24">
+        <mxCell id="p4-32" value="response" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.75;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="p4-30" target="p4-24">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="810" y="450" />
@@ -529,10 +535,10 @@
         <mxCell id="p5-6" value="no (default)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-4" target="p5-5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="p5-7" value="live or demo?" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rhombus;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="p5-7" value="chart to&#10;photograph?" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rhombus;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="60" y="250" width="150" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="p5-8" value="StartupCheck stops the cBot at start-up&#10;(visual backtest, non-visual backtest, optimization)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="p5-8" value="StartupCheck stops the cBot at start-up&#10;(non-visual backtest, optimization)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="300" y="265" width="380" height="60" as="geometry" />
         </mxCell>
         <mxCell id="p5-9" value="yes" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-4" target="p5-7">
@@ -544,10 +550,10 @@
         <mxCell id="p5-11" value="NO TRADE&#10;+&#10;clear log line" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="960" y="520" width="170" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="p5-12" value="signal detected&#10;(live / demo)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="p5-12" value="signal detected" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="60" y="545" width="150" height="56" as="geometry" />
         </mxCell>
-        <mxCell id="p5-13" value="yes" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-7" target="p5-12">
+        <mxCell id="p5-13" value="yes&#10;live, demo,&#10;visual backtest" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-7" target="p5-12">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="p5-14" value="Chart.TakeChartshot() returns null  (chart not visible)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;" vertex="1" parent="1">
