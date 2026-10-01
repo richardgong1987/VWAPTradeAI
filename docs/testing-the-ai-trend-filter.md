@@ -237,39 +237,43 @@ waiting days for live signals, a few months of history produce them in one sitti
    was taken:
 
    ```text
-   AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 0 ticks
+   AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 3 ticks
    ```
 
 What differs from live:
 
 - **The backtest waits for the model.** That is deliberate: a backtest's clock does not wait for
   anyone, so without the wait the answer would arrive many bars too late. Expect the model's 5 to
-  15 seconds per signal, plus up to 2 seconds for the chart; a backtest with 200 signals takes
+  15 seconds per signal, plus up to 5 seconds for the chart; a backtest with 200 signals takes
   about an hour longer.
 - **A passed signal enters close to the bar's opening price,** because simulated time stands
   still while the model thinks. Live, the entry is a few seconds later.
 
 **The picture waits for the chart.** A fast visual backtest draws its chart behind the bot, so a
 picture taken at once can show a chart one bar to an hour and a half old. The bot only takes the
-AI's picture once the chart shows the bar after the signal's. It waits in place first, up to 2
-seconds with the backtest stopped. If the chart still lags, it lets the backtest move on tick by
-tick within the same bar and checks again; then the entry is that much later, as it would be
-live. A signal whose bar never appears is rejected:
+AI's picture once the chart shows the bar after the signal's. The chart only catches up between
+the bot's handlers, so the bot lets the backtest move on tick by tick within the same bar, pausing
+100 ms after each look that finds the chart behind, and looks again on the next tick; the entry
+is then that much later, as it would be live. A first version waited 2 seconds inside `OnBar`
+instead, and the chart never moved: every signal was rejected. A signal whose bar does not appear
+within 50 pauses (5 seconds), or before the next bar opens, is rejected:
 
 ```text
-AI chart not current | Signal: Buy L_Pin_1 | Reason: a new bar opened before the chart showed the signal's bar | SignalBar: 4521 | LastVisibleBar: 4519 | ...
+AI chart not current | Signal: Buy L_Pin_1 | Reason: the chart did not show the signal's bar within 5 seconds of backtest pauses | SignalBar: 4521 | LastVisibleBar: 4520 | ...
 ```
 
 **After the first few signals, check that this works.** cTrader does not document how its chart
-keeps up in a backtest, so this is the first real test of it:
+keeps up in a backtest, so check it on a real run:
 
-- Read the `AI chart picture` lines. `Waited: ... 0 ticks` means the chart caught up while the bot
-  waited in place; `1 ticks` or more means it needed the backtest to move on.
+- Read the `AI chart picture` lines. `Waited: 0 ms, 0 ticks` means the chart was already current;
+  otherwise `ticks` says how far the backtest had to move on, and `ms` roughly how many 100 ms
+  pauses that took.
 - Open the newest pictures in `~/Documents/TrendAssessment` and compare each with the
   `signal_bar_time` in its `.json`. The chart should end at the signal's bar, or one bar after it.
 - If the pictures still end earlier while the log says the chart showed the bar, the chart reports
   more than it has drawn. Tell me; the fix then has to change.
-- If most signals end as `AI chart not current`, lower the backtest's speed and tell me.
+- If most signals still end as `AI chart not current`, the chart does not catch up between ticks
+  either. Try a lower backtest speed, and tell me what the `AI chart` lines say.
 
 Every assessment of the backtest is recorded like a live one, so the pictures and answers go
 straight into [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md).

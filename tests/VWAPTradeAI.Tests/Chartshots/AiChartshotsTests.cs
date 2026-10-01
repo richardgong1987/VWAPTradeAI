@@ -22,14 +22,8 @@ namespace VWAPTradeAI.Tests.Chartshots {
             _camera.Events = _events;
         }
 
-        // Each pause may let the chart move on, as the real chart catches up while the cBot waits.
-        private Action _duringPause = () => { };
-
         private AiChartshots Chartshots(bool isBacktest) {
-            return new AiChartshots(_camera, isBacktest, _ => {
-                _pauses++;
-                _duringPause();
-            }, () => _now, (signal, picture) => {
+            return new AiChartshots(_camera, isBacktest, _ => _pauses++, () => _now, (signal, picture) => {
                 _events.Add("handed on");
                 _handedOn.Add((signal, picture));
             }, _log.Add);
@@ -65,36 +59,59 @@ namespace VWAPTradeAI.Tests.Chartshots {
         }
 
         [Fact]
-        public void in_a_backtest_the_cbot_waits_in_place_while_the_chart_catches_up() {
-            _camera.LastVisibleBarIndex = 40;
-            _duringPause = () => _camera.LastVisibleBarIndex++;
-
-            Chartshots(isBacktest: true).OnSignal(_signal);
-
-            Assert.Equal(3, _pauses);
-            Assert.Same(Picture, Assert.Single(_handedOn).Picture);
-            Assert.Contains(_log, line => line.StartsWith("AI chart picture | SignalBar: 42 | LastVisibleBar: 43") && line.EndsWith("0 ticks"));
-        }
-
-        [Fact]
-        public void in_a_backtest_the_wait_in_place_is_limited_and_then_continues_on_the_next_ticks() {
-            _camera.LastVisibleBarIndex = 40;
+        public void in_a_backtest_each_look_that_finds_the_chart_behind_pauses_before_the_next_tick() {
+            _camera.LastVisibleBarIndex = 41;
             AiChartshots chartshots = Chartshots(isBacktest: true);
 
             chartshots.OnSignal(_signal);
+            Assert.Equal(1, _pauses);
 
-            Assert.Equal(20, _pauses); // 20 × 100 ms
+            chartshots.OnTick();
+            Assert.Equal(2, _pauses);
             Assert.Empty(_handedOn);
 
-            _camera.LastVisibleBarIndex = 43; // the chart gets the bar once the backtest moves on
+            _camera.LastVisibleBarIndex = 43; // the chart caught up between ticks, as it does in cTrader
             chartshots.OnTick();
 
+            Assert.Equal(2, _pauses);
             Assert.Same(Picture, Assert.Single(_handedOn).Picture);
-            Assert.Contains(_log, line => line.StartsWith("AI chart picture") && line.EndsWith("1 ticks"));
+            Assert.Contains(_log, line => line.StartsWith("AI chart picture | SignalBar: 42 | LastVisibleBar: 43") && line.EndsWith("2 ticks"));
         }
 
         [Fact]
-        public void live_the_cbot_never_waits_in_place() {
+        public void in_a_backtest_a_minute_of_market_time_does_not_end_the_wait() {
+            _camera.LastVisibleBarIndex = 41;
+            AiChartshots chartshots = Chartshots(isBacktest: true);
+            chartshots.OnSignal(_signal);
+
+            _now = _now.AddSeconds(90); // a fast backtest gets through this in a few milliseconds
+            chartshots.OnTick();
+
+            Assert.Empty(_handedOn);
+        }
+
+        [Fact]
+        public void in_a_backtest_the_wait_ends_after_fifty_pauses_without_a_picture() {
+            _camera.LastVisibleBarIndex = 41;
+            _camera.ScrollMoves = false; // the chart is at the newest bar it has, so scrolling cannot help
+            AiChartshots chartshots = Chartshots(isBacktest: true);
+            chartshots.OnSignal(_signal);
+
+            for (int tick = 0; tick < 49; tick++)
+                chartshots.OnTick();
+
+            Assert.Equal(50, _pauses); // 50 × 100 ms
+            Assert.Empty(_handedOn);
+
+            chartshots.OnTick();
+
+            Assert.Equal(50, _pauses);
+            Assert.Null(Assert.Single(_handedOn).Picture);
+            Assert.Contains(_log, line => line.Contains("Reason: the chart did not show the signal's bar within 5 seconds of backtest pauses"));
+        }
+
+        [Fact]
+        public void live_the_cbot_never_pauses() {
             _camera.LastVisibleBarIndex = 40;
             AiChartshots chartshots = Chartshots(isBacktest: false);
 
@@ -138,7 +155,7 @@ namespace VWAPTradeAI.Tests.Chartshots {
         }
 
         [Fact]
-        public void after_a_minute_of_market_time_without_the_bar_the_signal_is_handed_on_without_a_picture() {
+        public void live_after_a_minute_of_market_time_without_the_bar_the_signal_is_handed_on_without_a_picture() {
             _camera.LastVisibleBarIndex = 30;
             _camera.ScrollMoves = false;
             AiChartshots chartshots = Chartshots(isBacktest: false);

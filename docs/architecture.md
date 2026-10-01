@@ -123,9 +123,10 @@ With the filter on, live or demo, for each closed M5 bar (`OnBar`):
 Steps 3 and 4 are in that order on purpose. A model that sees the strategy's own BUY or SELL
 marker is nudged towards the answer the strategy hopes for, so the picture is taken first.
 
-In a visual backtest the steps are the same with two differences. In step 3, `AiChartshots`
-first waits in place, up to 2 seconds with the backtest stopped, for the chart to catch up, and
-only then falls back to the following ticks. Step 5 is `AiTrendFilter.AssessAndWait`, which waits
+In a visual backtest the steps are the same with two differences. In step 3, each look that
+finds the chart behind ends with a 100 ms pause, so the backtest slows down for that bar and the
+chart catches up before the next tick; the wait ends after 50 pauses (5 s) instead of a minute of
+market time. Step 5 is `AiTrendFilter.AssessAndWait`, which waits
 for the answer instead of returning: steps 6 to 11 then happen before the handler returns, and
 step 7 needs no hand-off because the cBot thread never left. See
 [Backtest behavior](#backtest-behavior).
@@ -401,9 +402,12 @@ three ways:
 - **The chart lags behind the cBot.** A fast visual backtest draws its chart behind the cBot:
   pictures taken at once showed a chart one bar to an hour and a half old, or an empty one. So
   `AiChartshots` only takes the picture once `Chart.LastVisibleBarIndex` shows the bar after the
-  signal's. It waits in place first (up to 2 s, the backtest stopped); if the chart only receives
-  the bar once the backtest moves on, it checks again on the following ticks of the same bar, and
-  the entry is then that much later than the bar's open, as it would be live. Each picture is
+  signal's. Holding the cBot thread inside one handler does not let the chart catch up (a 1 s and
+  then a 2 s hold in `OnBar` changed nothing: the chart only moves on between handlers), and a
+  minute of backtest time has passed in 40 ms. So it looks again on the following ticks of the
+  same bar and pauses 100 ms after each look that finds the chart behind, which slows the
+  backtest for that bar and gives the chart real time; after 50 pauses (5 s) it gives up. The
+  entry is then that much later than the bar's open, as it would be live. Each picture is
   logged (`AI chart picture | SignalBar … | LastVisibleBar … | Waited …`), and a signal whose bar
   never appears is rejected (`AI chart not current`). cTrader does not document how its chart
   keeps up in a backtest, so with `保存AI评估截图` on, check that the recorded pictures end at the

@@ -198,8 +198,8 @@ public class VWAPTradeAI : Robot
             BuildTrendAssessmentRecorder(), Log);
     }
 
-    // The AI's picture waits until the chart shows the signal's bar. Only a backtest may hold the
-    // cBot thread for that; live, the waiting is done across ticks.
+    // The AI's picture waits, across the ticks of the bar, until the chart shows the signal's bar.
+    // Only a backtest also pauses on each of those ticks, to give its lagging chart real time.
     private AiChartshots BuildAiChartshots() {
         return new AiChartshots(new CAlgoChartCamera(Chart), IsBacktesting, Thread.Sleep, () => Server.Time, AssessPicturedSignal, Log);
     }

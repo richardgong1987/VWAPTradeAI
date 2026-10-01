@@ -11,10 +11,17 @@ namespace cAlgo.Robots;
 // So the picture is only taken once the chart shows the bar after the signal's (which means the
 // signal's bar is complete on screen):
 //
-//   OnSignal   backtest: wait here, up to 2 s, holding the cBot thread so the clock stands still
-//   OnTick     still not shown: check again on every tick of the same bar; after two ticks scroll
+//   OnSignal   look at once
+//   OnTick     still not shown: look again on every tick of the same bar; after two ticks scroll
 //              the chart to the newest bar once, in case it was scrolled back
 //   OnNewBar   give up on a signal whose bar the chart never showed
+//
+// A visual backtest needs more. Its chart is drawn behind the cBot and only moves on between the
+// cBot's handlers: holding the cBot thread inside OnBar (1 s, later 2 s) never let it catch up. And
+// its market time races: 60 simulated seconds have passed in 40 ms. So in a backtest each look that
+// finds the chart behind ends with a 100 ms pause, which slows the backtest during this one bar and
+// gives the chart real time before the next tick looks again; the wait ends after 50 pauses (5 s
+// of real time), not after a minute of market time.
 //
 // Whatever happens, onPicture is called once per signal: with the picture, or with null after
 // giving up, which the AI filter turns into a logged rejection. The signal's marker is drawn by
@@ -25,18 +32,16 @@ namespace cAlgo.Robots;
 //
 // No cAlgo dependency: the chart comes in as IChartCamera, the clocks and the pause as functions.
 public class AiChartshots {
-    // Backtest: look every 100 ms, for up to 2 s.
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
-    private const int MaxHoldPolls = 20;
+    private static readonly TimeSpan BacktestPause = TimeSpan.FromMilliseconds(100);
+    private const int MaxBacktestPauses = 50;
 
-    // Market time, so in a backtest it counts simulated seconds. Live, ticks keep coming, and a
-    // chart that has not caught up within a minute will not.
-    private static readonly TimeSpan TickWaitLimit = TimeSpan.FromSeconds(60);
+    // Live only. Ticks keep coming, and a chart that has not caught up within a minute will not.
+    private static readonly TimeSpan LiveWaitLimit = TimeSpan.FromSeconds(60);
 
     private const int TicksBeforeScroll = 2;
 
     private readonly IChartCamera _camera;
-    private readonly bool _mayHoldThread;
+    private readonly bool _isBacktest;
     private readonly Action<TimeSpan> _pause;
     private readonly Func<DateTime> _marketTime;
     private readonly Action<SignalModel, byte[]> _onPicture;
@@ -46,13 +51,15 @@ public class AiChartshots {
     private DateTime _giveUpAt;
     private Stopwatch _waited;
     private int _ticksWaited;
+    private int _pauses;
     private bool _hasScrolled;
 
-    // mayHoldThread: a backtest, where holding the cBot thread stops the clock instead of missing it.
-    public AiChartshots(IChartCamera camera, bool mayHoldThread, Action<TimeSpan> pause, Func<DateTime> marketTime,
+    // isBacktest: holding the cBot thread stops the backtest's clock instead of missing ticks, so a
+    // backtest may pause while it waits; live never does.
+    public AiChartshots(IChartCamera camera, bool isBacktest, Action<TimeSpan> pause, Func<DateTime> marketTime,
         Action<SignalModel, byte[]> onPicture, Action<string> log) {
         _camera = camera;
-        _mayHoldThread = mayHoldThread;
+        _isBacktest = isBacktest;
         _pause = pause;
         _marketTime = marketTime;
         _onPicture = onPicture;
@@ -64,13 +71,11 @@ public class AiChartshots {
         OnNewBar();
 
         _pending = signal;
-        _giveUpAt = _marketTime() + TickWaitLimit;
+        _giveUpAt = _marketTime() + LiveWaitLimit;
         _waited = Stopwatch.StartNew();
         _ticksWaited = 0;
+        _pauses = 0;
         _hasScrolled = false;
-
-        if (_mayHoldThread)
-            HoldUntilShown();
 
         TryTake();
     }
@@ -89,11 +94,6 @@ public class AiChartshots {
             GiveUp("a new bar opened before the chart showed the signal's bar");
     }
 
-    private void HoldUntilShown() {
-        for (int poll = 0; poll < MaxHoldPolls && _camera.IsVisible && !ShowsSignalBar(); poll++)
-            _pause(PollInterval);
-    }
-
     private void TryTake() {
         if (!_camera.IsVisible) {
             GiveUp("the chart is not visible");
@@ -108,8 +108,23 @@ public class AiChartshots {
             return;
         }
 
-        if (_marketTime() >= _giveUpAt)
-            GiveUp($"the chart did not show the signal's bar within {TickWaitLimit.TotalSeconds:0} seconds");
+        if (_isBacktest)
+            PauseBeforeNextTick();
+        else if (_marketTime() >= _giveUpAt)
+            GiveUp($"the chart did not show the signal's bar within {LiveWaitLimit.TotalSeconds:0} seconds");
+    }
+
+    // The last thing the handler does: the chart catches up while the backtest stands still here,
+    // and the cBot sees it from the next tick on.
+    private void PauseBeforeNextTick() {
+        if (_pauses >= MaxBacktestPauses) {
+            GiveUp($"the chart did not show the signal's bar within {MaxBacktestPauses * BacktestPause.TotalSeconds:0} seconds " +
+                   "of backtest pauses");
+            return;
+        }
+
+        _pauses++;
+        _pause(BacktestPause);
     }
 
     private bool ShowsSignalBar() {

@@ -98,14 +98,18 @@ With the filter off, every backtest and optimization runs exactly as before.
 backtest) or be scrolled back. So the bot only takes the AI's picture once the chart shows the
 bar after the signal's, which means the signal's bar is complete on screen:
 
-1. In a visual backtest it first waits in place, up to 2 seconds, with the backtest stopped.
-2. If the chart still lags, it checks again on every tick of the same bar. After two ticks it
-   scrolls the chart to the newest bar once, in case it was scrolled back.
-3. If the chart never shows the bar (within a minute, or before the next bar opens), the signal is
-   rejected: `AI chart not current`.
+1. It looks at once. If the chart lags, it looks again on every tick of the same bar. After two
+   ticks it scrolls the chart to the newest bar once, in case it was scrolled back.
+2. In a visual backtest each look that finds the chart behind ends with a 100 ms pause, so the
+   backtest slows down for that bar and the chart gets real time to catch up. Holding the
+   backtest inside one handler does not work: the chart only moves on between the bot's handlers.
+3. If the chart never shows the bar, the signal is rejected: `AI chart not current`. Live that is
+   after a minute; in a visual backtest after 50 pauses (5 seconds of real time), because a minute
+   of backtest time can pass in a few milliseconds; either way at the latest when the next bar
+   opens.
 
 Each picture is logged with the bars the chart showed, for example
-`AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 0 ticks`.
+`AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 3 ticks`.
 When the picture is only taken on a later tick, the backtest has moved on by those ticks, so the
 entry is a little after the bar's opening price, as it would be live.
 

@@ -279,7 +279,7 @@
         <mxCell id="p2-47" value="Why the order of steps 1 and 2 matters&#10;&#10;A model that sees the strategy's own BUY / SELL marker is nudged&#10;towards the answer the strategy hopes for. The marker is still&#10;drawn for every signal, whatever the AI decides." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="995" width="490" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="p2-48" value="Visual backtest&#10;&#10;Step 1 first waits in place (up to 2 s, the backtest stopped) for the chart&#10;to catch up, then over the next ticks of the bar. Submit is AssessAndWait:&#10;the main thread waits for the answer, so the backtest stands still." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="p2-48" value="Visual backtest&#10;&#10;Step 1 looks again on each tick of the bar, pausing 100 ms after each look&#10;(5 s at most) so the chart can catch up. Submit is AssessAndWait:&#10;the main thread waits for the answer, so the backtest stands still." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="1110" width="490" height="100" as="geometry" />
         </mxCell>
       </root>

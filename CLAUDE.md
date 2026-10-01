@@ -60,8 +60,8 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
   `OrderExecutor.TryEnter`;
 - per closed bar, AI filter on: `AiChartshots.OnNewBar` (settles a signal whose picture never
   came) → `SignalDetector.DetectOnClosedBar` → `AiChartshots.OnSignal`. Once the chart shows the
-  bar after the signal's (at once, after waiting in place up to 2 s in a backtest, or on a later
-  tick via `OnTick`), `Chart.TakeChartshot()` runs **before** the marker, so the model never sees
+  bar after the signal's (at once, or on a later tick via `OnTick`; a backtest pauses 100 ms
+  after each look that finds the chart behind), `Chart.TakeChartshot()` runs **before** the marker, so the model never sees
   the strategy's own mark → `AssessPicturedSignal`: `SignalMarkers.Draw` →
   `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
   `AiTrendFilter.Complete` → signal still the last closed bar? → `TrendDirectionGate` →
@@ -98,11 +98,13 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   number in the folder. Either way a picture is never overwritten.
   The same folder holds the AI's picture: `AiChartshots` (pure, unit tested) decides *when* it is
   taken, through the port `IChartCamera` and its cAlgo adapter `CAlgoChartCamera`. It waits until
-  the chart shows the bar after the signal's (`Chart.LastVisibleBarIndex`), holding the cBot thread
-  up to 2 s in a backtest and otherwise checking on each tick of the same bar, scrolls the chart to
-  the newest bar once after two ticks, and gives up with `AI chart not current` after a minute of
-  market time or at the next bar. It hands every signal on exactly once, with the picture or null,
-  and the marker is drawn after that.
+  the chart shows the bar after the signal's (`Chart.LastVisibleBarIndex`), checking on each tick
+  of the same bar, and scrolls the chart to the newest bar once after two ticks. A visual
+  backtest's chart only catches up between the cBot's handlers (holding the thread inside `OnBar`
+  never helped), so in a backtest each look that finds the chart behind ends with a 100 ms pause.
+  It gives up with `AI chart not current` at the next bar, or earlier: live after a minute of
+  market time, in a backtest after 50 pauses (5 s), because backtest market time races. It hands
+  every signal on exactly once, with the picture or null, and the marker is drawn after that.
 - `Orders/` — `RiskBudget` (how much account currency one trade may lose), `OrderPlanner` (sizing/geometry
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places

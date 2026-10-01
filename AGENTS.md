@@ -21,8 +21,8 @@ Once per closed bar:
 3. **Mark.** `SignalMarkers` marks the signal on the chart; the marker stays whether or not the
    order goes out.
 4. **AI trend gate, only with `启用AI趋势过滤` on** (off by default; then step 5 follows at once).
-   `AiChartshots` takes `Chart.TakeChartshot()` once the chart shows the signal's bar (waiting in
-   place up to 2 s in a backtest, or over the following ticks of the same bar) and *before* step 3
+   `AiChartshots` takes `Chart.TakeChartshot()` once the chart shows the signal's bar (looking
+   again on the following ticks of the same bar, a backtest pausing 100 ms on each, up to 5 s) and *before* step 3
    draws the marker, then the picture goes to `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
    answers some seconds later; back on the cBot thread the signal must still be the last closed
    bar and pass `TrendDirectionGate` (Buy + UP, or Sell + DOWN, and a daily VWAP that is not
