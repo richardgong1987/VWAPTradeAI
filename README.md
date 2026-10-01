@@ -86,13 +86,28 @@ wherever there is a chart on screen:
   seconds after the bar opens.
 - **Visual backtest:** a backtest's clock does not wait for anyone, so here the bot waits: the
   backtest pauses at every signal until the model has answered (several seconds each), and the
-  signal is decided on its own bar. This is the way to see how the model judges past charts. Check
-  the first recorded pictures: a fast visual backtest has been seen to draw its chart behind the
-  bot, and the bot pauses one second before each picture to let it catch up.
+  signal is decided on its own bar. This is the way to see how the model judges past charts. A
+  fast visual backtest draws its chart behind the bot, so before each picture the bot waits until
+  the chart shows the signal's bar (see below), and rejects the signal if it never does.
 - **Non-visual backtest and optimization:** there is no chart, so the bot refuses to start with the
   filter on.
 
 With the filter off, every backtest and optimization runs exactly as before.
+
+**The picture must show the signal's bar.** The chart can lag behind the bot (a fast visual
+backtest) or be scrolled back. So the bot only takes the AI's picture once the chart shows the
+bar after the signal's, which means the signal's bar is complete on screen:
+
+1. In a visual backtest it first waits in place, up to 2 seconds, with the backtest stopped.
+2. If the chart still lags, it checks again on every tick of the same bar. After two ticks it
+   scrolls the chart to the newest bar once, in case it was scrolled back.
+3. If the chart never shows the bar (within a minute, or before the next bar opens), the signal is
+   rejected: `AI chart not current`.
+
+Each picture is logged with the bars the chart showed, for example
+`AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 0 ticks`.
+When the picture is only taken on a later tick, the backtest has moved on by those ticks, so the
+entry is a little after the bar's opening price, as it would be live.
 
 **What must be running.** The model is served by a separate project,
 [TrendAssessmentModel](https://github.com/richardgong1987/TrendAssessmentModel), which this bot

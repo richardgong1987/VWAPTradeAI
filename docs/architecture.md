@@ -50,7 +50,7 @@ Owns trading, and the decision whether to trade.
 | What | Where |
 | --- | --- |
 | Signal detection | `Signals/SignalDetector.cs` (unchanged by the filter) |
-| Taking the AI's picture, before the marker | `VWAPTradeAI.cs`, `OnBar`: `Chart.TakeChartshot()` |
+| Taking the AI's picture once the chart shows the signal's bar, before the marker | `Chartshots/AiChartshots.cs` through `IChartCamera` (`Chart.TakeChartshot()`) |
 | The asynchronous request and its return to the cBot thread | `TrendAssessment/AiTrendFilter.cs` |
 | Trade eligibility (the signal is still the last closed bar) | `TrendAssessment/AiTrendFilter.cs` |
 | The PASS / REJECT rule | `TrendAssessment/TrendDirectionGate.cs` |
@@ -91,13 +91,20 @@ daily VWAP direction, or says the picture is not a usable chart.
 
 With the filter on, live or demo, for each closed M5 bar (`OnBar`):
 
-1. `VwapSeries.Update` and `VwapLines.Draw`, as always.
+1. `VwapSeries.Update` and `VwapLines.Draw`, as always. `AiChartshots.OnNewBar` settles a
+   signal from the last bar whose picture never came (rejected, see below).
 2. `SignalDetector.DetectOnClosedBar`. No signal: nothing else happens.
-3. **`Chart.TakeChartshot()`** returns the chart as PNG bytes, in memory. The signal's marker is
-   not on the chart yet.
-4. **`SignalMarkers.Draw(signal)`** draws the marker. It is drawn for every detected signal,
-   whatever the AI later decides.
-5. `AiTrendFilter.Submit(signal, png)` starts the request and returns. `OnBar` returns.
+3. **`AiChartshots` takes the picture once the chart shows the signal's bar.** It checks
+   `Chart.LastVisibleBarIndex`: the chart must show the bar after the signal's, so the signal's
+   own bar is complete on screen. Live this is normally true at once, or on the next tick. If the
+   chart still has not caught up after two ticks, it is scrolled to the newest bar once. Then
+   **`Chart.TakeChartshot()`** returns the chart as PNG bytes, in memory. The signal's marker is
+   not on the chart yet. If the chart never shows the bar (a minute of market time, or the next
+   bar opens), there is no picture and the signal is rejected (`AI chart not current`).
+4. **`SignalMarkers.Draw(signal)`** draws the marker (`AssessPicturedSignal`). It is drawn for
+   every detected signal, whatever the AI later decides.
+5. `AiTrendFilter.Submit(signal, png)` starts the request and returns, as does the handler
+   (`OnBar`, or the `OnTick` on which the picture was taken).
 6. On a thread-pool thread, `TrendAssessmentClient` posts the picture to
    `POST /v1/assessments` and waits. TrendAssessmentModel asks `gemma3:27b` through Ollama and
    returns a validated assessment. `TrendAssessmentReply` checks the reply again.
@@ -116,9 +123,10 @@ With the filter on, live or demo, for each closed M5 bar (`OnBar`):
 Steps 3 and 4 are in that order on purpose. A model that sees the strategy's own BUY or SELL
 marker is nudged towards the answer the strategy hopes for, so the picture is taken first.
 
-In a visual backtest the steps are the same with two differences: step 3 follows a one-second
-pause that lets the backtest's chart catch up, and step 5 is `AiTrendFilter.AssessAndWait`, which
-waits for the answer instead of returning. Steps 6 to 11 then happen before `OnBar` returns, and
+In a visual backtest the steps are the same with two differences. In step 3, `AiChartshots`
+first waits in place, up to 2 seconds with the backtest stopped, for the chart to catch up, and
+only then falls back to the following ticks. Step 5 is `AiTrendFilter.AssessAndWait`, which waits
+for the answer instead of returning: steps 6 to 11 then happen before the handler returns, and
 step 7 needs no hand-off because the cBot thread never left. See
 [Backtest behavior](#backtest-behavior).
 
@@ -168,8 +176,8 @@ Two different pictures are taken, for two different purposes, by two separate me
 | Folder | `~/Documents/TrendAssessment/` (only when recording is on) | `~/Documents/TakeChartshot/` |
 | Cleared at start-up | Never | Yes, when `启动时清空交易记录CSV和截图` is on |
 
-**Pre-AI screenshot.** PNG bytes from `Chart.TakeChartshot()`, sent to the service and then
-dropped.
+**Pre-AI screenshot.** PNG bytes from `Chart.TakeChartshot()`, taken by `AiChartshots` once the
+chart shows the signal's bar, sent to the service and then dropped.
 
 **Optional AI evaluation recording.** With `保存AI评估截图` on, `TrendAssessmentRecorder` writes two
 files per assessment, named by the signal bar's time, the symbol and the first eight characters of
@@ -219,8 +227,8 @@ thread, so waiting there would freeze the cBot for that long.
 
 | Runs on the cTrader main thread | Runs in the background (thread pool) |
 | --- | --- |
-| `OnBar` | The HTTP request |
-| `Chart.TakeChartshot()` | Waiting for TrendAssessmentModel |
+| `OnBar`, and `OnTick` while a signal waits for its picture | The HTTP request |
+| Waiting for the chart to show the signal's bar, `Chart.TakeChartshot()` | Waiting for TrendAssessmentModel |
 | `SignalMarkers.Draw` | Reading and validating the response |
 | The eligibility check | |
 | `TrendDirectionGate` | |
@@ -350,7 +358,7 @@ Everything else ends as **no trade and a log line**.
 
 | What happened | Log line starts with |
 | --- | --- |
-| `Chart.TakeChartshot()` returned null (the chart is not visible) | `AI trend unavailable` … `The chart is not visible` |
+| The chart is not visible, or never showed the signal's bar | `AI chart not current` with the reason, then `AI trend unavailable` … `No current picture of the chart to assess` |
 | The service is not running or not reachable | `AI trend unavailable` … `The AI service is not reachable` |
 | No answer within `AI超时秒数` | `AI trend unavailable` … `Local assessment request timed out after 30 seconds` |
 | The service returned an error (400, 500, 502, 504) | `AI trend unavailable` … `The AI service answered HTTP 502 model_unavailable: …` |
@@ -390,11 +398,16 @@ three ways:
 - **The entry is at the bar's opening price.** Simulated time stands still while the model thinks,
   so a passed signal enters at the first tick of the bar, as it would with the filter off. Live,
   it enters some seconds later.
-- **The picture may lag.** A fast visual backtest has been seen to draw its chart behind the cBot:
-  pictures taken at once showed a chart about an hour old, or an empty one. The cBot therefore
-  pauses one second before each picture to let the chart catch up. That second is an estimate,
-  not a measured figure, so with `保存AI评估截图` on, check that the recorded pictures end at the
-  signal's bar. If they do not, slow the backtest down.
+- **The chart lags behind the cBot.** A fast visual backtest draws its chart behind the cBot:
+  pictures taken at once showed a chart one bar to an hour and a half old, or an empty one. So
+  `AiChartshots` only takes the picture once `Chart.LastVisibleBarIndex` shows the bar after the
+  signal's. It waits in place first (up to 2 s, the backtest stopped); if the chart only receives
+  the bar once the backtest moves on, it checks again on the following ticks of the same bar, and
+  the entry is then that much later than the bar's open, as it would be live. Each picture is
+  logged (`AI chart picture | SignalBar … | LastVisibleBar … | Waited …`), and a signal whose bar
+  never appears is rejected (`AI chart not current`). cTrader does not document how its chart
+  keeps up in a backtest, so with `保存AI评估截图` on, check that the recorded pictures end at the
+  signal's bar.
 
 `StartupCheck.FindAiFilterError` refuses the filter where there is no chart: a non-visual backtest
 or an optimization would otherwise reject every signal for want of a picture, which looks like a
@@ -420,7 +433,7 @@ cd ~/PycharmProjects/TrendAssessmentModel
 
 The service sends `keep_alive: -1` to Ollama on warm-up and on every assessment, so the model
 stays loaded until Ollama restarts, and an assessment does not pay for loading it again. A warm
-assessment measured about 5 to 11 seconds on this machine; loading the model takes about 10
+assessment measured about 5 to 15 seconds on this machine; loading the model takes about 10
 seconds more. To unload the model: `ollama stop gemma3:27b`.
 
 The service gives Ollama 25 seconds per assessment (`MODEL_TIMEOUT_SECONDS`). The cBot's
@@ -442,8 +455,8 @@ Things the design does not solve, which matter when the filter is on:
 
 - **The chart must be visible.** cTrader only takes a screenshot of a chart that is on screen.
   Otherwise every signal is rejected.
-- **The model sees whatever is on screen.** Keep the chart scrolled to the latest bar at a
-  sensible zoom. Markers of earlier signals and position lines are in the picture; the prompt tells
+- **The model sees whatever is on screen.** The bot makes sure the signal's bar is shown, and
+  scrolls the chart once if it is not, but the zoom is yours: keep it at a sensible span. Markers of earlier signals and position lines are in the picture; the prompt tells
   the model to ignore them.
 - **The entry is later than without the filter.** The order goes out some seconds after the bar
   opens, at the price of that moment, so the risk-to-reward ratio drifts a little more.

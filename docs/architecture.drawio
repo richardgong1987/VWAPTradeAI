@@ -23,7 +23,7 @@
         <mxCell id="p1-6" value="SignalDetector&#10;+ VWAP series&#10;&#10;finds the signal" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="60" y="176" width="130" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="p1-7" value="OnBar (Robot)&#10;&#10;Chart.TakeChartshot()&#10;then SignalMarkers.Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p1-7" value="AiChartshots&#10;&#10;waits for the signal's bar,&#10;Chart.TakeChartshot(),&#10;then SignalMarkers.Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="215" y="176" width="170" height="90" as="geometry" />
         </mxCell>
         <mxCell id="p1-8" value="AiTrendFilter&#10;&#10;async flow,&#10;eligibility check" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -148,7 +148,7 @@
         <mxCell id="p2-10" value="signal?" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rhombus;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="260" y="345" width="120" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p2-11" value="1.  Chart.TakeChartshot()&#10;PNG in memory: the AI's input, no marker on it" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p2-11" value="1.  AiChartshots: once the chart shows the signal's bar,&#10;Chart.TakeChartshot() -&gt; PNG in memory, no marker on it" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="150" y="445" width="340" height="54" as="geometry" />
         </mxCell>
         <mxCell id="p2-12" value="2.  SignalMarkers.Draw(signal)&#10;the marker appears only after the picture" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
@@ -279,7 +279,7 @@
         <mxCell id="p2-47" value="Why the order of steps 1 and 2 matters&#10;&#10;A model that sees the strategy's own BUY / SELL marker is nudged&#10;towards the answer the strategy hopes for. The marker is still&#10;drawn for every signal, whatever the AI decides." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="995" width="490" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="p2-48" value="Visual backtest&#10;&#10;The same steps, but the picture follows a one-second pause and Submit&#10;is AssessAndWait: the main thread waits for the answer, so the backtest&#10;stands still and the signal is decided on its own bar." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="p2-48" value="Visual backtest&#10;&#10;Step 1 first waits in place (up to 2 s, the backtest stopped) for the chart&#10;to catch up, then over the next ticks of the bar. Submit is AssessAndWait:&#10;the main thread waits for the answer, so the backtest stands still." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="1110" width="490" height="100" as="geometry" />
         </mxCell>
       </root>
@@ -419,7 +419,7 @@
         <mxCell id="p4-7" value="OnBar" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="60" y="150" width="80" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p4-8" value="Chart.&#10;TakeChartshot" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p4-8" value="wait for the&#10;signal's bar,&#10;TakeChartshot" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="160" y="150" width="110" height="70" as="geometry" />
         </mxCell>
         <mxCell id="p4-9" value="SignalMarkers.&#10;Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -556,7 +556,7 @@
         <mxCell id="p5-13" value="yes&#10;live, demo,&#10;visual backtest" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-7" target="p5-12">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="p5-14" value="Chart.TakeChartshot() returns null  (chart not visible)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;" vertex="1" parent="1">
+        <mxCell id="p5-14" value="no current picture  (chart hidden, or it never showed the signal's bar)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="300" y="380" width="540" height="36" as="geometry" />
         </mxCell>
         <mxCell id="p5-15" value="" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-12" target="p5-14">
@@ -667,8 +667,8 @@
         <mxCell id="p6-4" value="AI input: taken BEFORE the entry, without the signal marker" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;dashed=1;dashPattern=6 4;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="100" width="1100" height="290" as="geometry" />
         </mxCell>
-        <mxCell id="p6-5" value="OnBar&#10;Chart.TakeChartshot()" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="60" y="160" width="170" height="60" as="geometry" />
+        <mxCell id="p6-5" value="AiChartshots, once the&#10;chart shows the signal's bar:&#10;Chart.TakeChartshot()" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="55" y="155" width="185" height="70" as="geometry" />
         </mxCell>
         <mxCell id="p6-6" value="PNG in memory" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="270" y="160" width="140" height="60" as="geometry" />

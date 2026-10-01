@@ -202,7 +202,7 @@ inside cTrader, so check them first.
 | 4 | A rejected signal does not trade | A rejected signal | `AI trend rejected`, no order, and the marker stays on the chart |
 | 5 | The decision matches the rule | Compare the log line with the table below | Buy passes only with `UP`, Sell only with `DOWN`, and never with `FLAT` |
 | 6 | No service means no trade | Stop the service (Ctrl+C) and wait for a signal, or start the bot with the service stopped | `AI trend unavailable ... Trade rejected`, or at start-up `AI service warm-up failed`. The bot keeps running |
-| 7 | A hidden chart means no trade | Switch to another chart tab and wait for a signal | `AI trend unavailable ... The chart is not visible ... Trade rejected` |
+| 7 | A hidden chart means no trade | Switch to another chart tab and wait for a signal | `AI chart not current ... the chart is not visible`, then `AI trend unavailable ... Trade rejected` |
 | 8 | A visual backtest waits for the model | See [Testing in a visual backtest](#testing-in-a-visual-backtest) | The backtest stands still for a few seconds at each signal, then carries on |
 | 9 | Runs without a chart refuse the filter | Start a non-visual backtest or an optimization with `启用AI趋势过滤` on | `参数有误，已停止：AI趋势过滤需要能截图的图表` and the bot stops |
 | 10 | Off means unchanged | Run a backtest with `启用AI趋势过滤` off | It trades as it always did; no `AI trend` lines at all |
@@ -233,27 +233,43 @@ waiting days for live signals, a few months of history produce them in one sitti
    ```
 
 5. At each signal the backtest stands still for a few seconds, then logs one of the
-   `AI trend ...` lines from Step 6 and carries on. Nothing else is different from Step 6.
+   `AI trend ...` lines from Step 6 and carries on. Before that, one line says how the picture
+   was taken:
+
+   ```text
+   AI chart picture | SignalBar: 4521 | LastVisibleBar: 4522 | FirstVisibleBar: 4380 | Waited: 300 ms, 0 ticks
+   ```
 
 What differs from live:
 
 - **The backtest waits for the model.** That is deliberate: a backtest's clock does not wait for
-  anyone, so without the wait the answer would arrive many bars too late. Expect about one second
-  plus the model's 5 to 10 seconds per signal; a backtest with 200 signals takes over half an hour
-  longer.
-- **A passed signal enters at the bar's opening price,** because simulated time stands still while
-  the model thinks. Live, the entry is a few seconds later.
+  anyone, so without the wait the answer would arrive many bars too late. Expect the model's 5 to
+  15 seconds per signal, plus up to 2 seconds for the chart; a backtest with 200 signals takes
+  about an hour longer.
+- **A passed signal enters close to the bar's opening price,** because simulated time stands
+  still while the model thinks. Live, the entry is a few seconds later.
 
-**Check the pictures first.** A fast visual backtest has been seen to draw its chart behind the
-bot: the cBot's own trade screenshots showed a chart about an hour old, and once an empty one. The
-bot now pauses one second before the AI's picture to let the chart catch up, but that second is a
-guess. After the first few signals, open the newest pictures in `~/Documents/TrendAssessment` and
-compare each with the `signal_bar_time` in its `.json`:
+**The picture waits for the chart.** A fast visual backtest draws its chart behind the bot, so a
+picture taken at once can show a chart one bar to an hour and a half old. The bot only takes the
+AI's picture once the chart shows the bar after the signal's. It waits in place first, up to 2
+seconds with the backtest stopped. If the chart still lags, it lets the backtest move on tick by
+tick within the same bar and checks again; then the entry is that much later, as it would be
+live. A signal whose bar never appears is rejected:
 
-- The chart ends at the signal's bar: good, the backtest's answers are worth reading.
-- The chart ends earlier, or is empty: the model judged an old chart, and those answers mean
-  nothing. Lower the backtest's speed and try again. If even a slow speed does not help, tell me:
-  the pause needs to be longer.
+```text
+AI chart not current | Signal: Buy L_Pin_1 | Reason: a new bar opened before the chart showed the signal's bar | SignalBar: 4521 | LastVisibleBar: 4519 | ...
+```
+
+**After the first few signals, check that this works.** cTrader does not document how its chart
+keeps up in a backtest, so this is the first real test of it:
+
+- Read the `AI chart picture` lines. `Waited: ... 0 ticks` means the chart caught up while the bot
+  waited in place; `1 ticks` or more means it needed the backtest to move on.
+- Open the newest pictures in `~/Documents/TrendAssessment` and compare each with the
+  `signal_bar_time` in its `.json`. The chart should end at the signal's bar, or one bar after it.
+- If the pictures still end earlier while the log says the chart showed the bar, the chart reports
+  more than it has drawn. Tell me; the fix then has to change.
+- If most signals end as `AI chart not current`, lower the backtest's speed and tell me.
 
 Every assessment of the backtest is recorded like a live one, so the pictures and answers go
 straight into [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md).
@@ -284,14 +300,15 @@ picture, decide what you would have answered, and compare. When the model is wro
 | --- | --- | --- |
 | `AI service warm-up failed ... not reachable` | The service is not running | Step 1 |
 | `AI trend unavailable ... not reachable` | The service stopped after start-up | Step 1; no need to restart the bot |
-| `AI trend unavailable ... The chart is not visible` | The chart is in a background tab or cTrader is minimised | Bring the chart to the front |
+| `AI chart not current ... the chart is not visible` | The chart is in a background tab or cTrader is minimised | Bring the chart to the front |
+| `AI chart not current ... did not show the signal's bar` or `... a new bar opened` | The chart lagged too far behind, or stayed scrolled back | Live: scroll the chart to the latest bar. Backtest: lower the speed |
 | `AI trend unavailable ... HTTP 504 model_timeout` | Ollama took longer than the service's 25 seconds: the model was not loaded, or another request was ahead of it | Run the warm-up from Step 2. With several bot instances, see the note below |
 | `AI trend unavailable ... timed out after 30 seconds` | The service accepted the request and never answered | Look at the service's terminal; restart the service |
 | `AI trend unavailable ... HTTP 502 model_unavailable` | Ollama is not running, or the model is missing | Start Ollama; `ollama list` |
 | `AI trend unreadable` | The model saw no candles or no solid yellow daily VWAP line | Look at the recorded picture: is the chart empty, scrolled away, or the VWAP off screen? |
 | `AI trend rejected ... Signal expired` | The answer came after the next bar had closed | Should not happen with a 30 second timeout; check the machine was not asleep |
 | `参数有误，已停止：AI趋势过滤需要能截图的图表` | The filter is on in a non-visual backtest or an optimization | Tick **Visual mode** for the backtest, or turn `启用AI趋势过滤` off |
-| Backtest pictures end before the signal bar, or are empty | The backtest's chart is drawn behind the bot | Slow the backtest down; see the next section |
+| Backtest pictures end before the signal bar although the log says `AI chart picture` | The chart reports bars it has not drawn yet | Tell me; see [Testing in a visual backtest](#testing-in-a-visual-backtest) |
 | `参数有误，已停止：AI服务地址无效` | The address is not an `http://` URL | Use `http://127.0.0.1:8787` |
 | No `AI trend` lines at all | No signal yet, or the filter is off on this instance | Check the start-up log for `AI trend filter on` |
 | The model's answer looks wrong | The model, not the plumbing | See the correcting guide linked above |

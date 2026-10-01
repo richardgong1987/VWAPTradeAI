@@ -21,8 +21,9 @@ Once per closed bar:
 3. **Mark.** `SignalMarkers` marks the signal on the chart; the marker stays whether or not the
    order goes out.
 4. **AI trend gate, only with `启用AI趋势过滤` on** (off by default; then step 5 follows at once).
-   `OnBar` takes `Chart.TakeChartshot()` *before* step 3 draws the marker and hands the picture to
-   `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
+   `AiChartshots` takes `Chart.TakeChartshot()` once the chart shows the signal's bar (waiting in
+   place up to 2 s in a backtest, or over the following ticks of the same bar) and *before* step 3
+   draws the marker, then the picture goes to `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
    answers some seconds later; back on the cBot thread the signal must still be the last closed
    bar and pass `TrendDirectionGate` (Buy + UP, or Sell + DOWN, and a daily VWAP that is not
    FLAT). Anything else, including any failure, is a logged rejection. In a visual backtest,
@@ -47,8 +48,11 @@ Breaking one of these changes trading results silently, so treat them as fixed:
 - **With the AI filter on, the only other caller of `TryEnter` is `AiTrendFilter`**, on the cBot
   thread, for a signal that is still the last closed bar. It is fail closed: a missing picture, a
   failed or invalid answer, an unreadable chart or a stale signal never trades.
-- **The AI's picture is taken before the signal's marker is drawn.** A model that sees the
-  strategy's own BUY/SELL mark is biased towards it. Don't reorder those two lines in `OnBar`.
+- **The AI's picture is taken before the signal's marker is drawn, and only once the chart shows
+  the signal's bar.** A model that sees the strategy's own BUY/SELL mark is biased towards it, and
+  one that sees an old chart judges the wrong moment. The marker is drawn in
+  `AssessPicturedSignal`, after `AiChartshots` has taken the picture; keep it there. A signal with
+  no current picture is rejected, never sent with an old one.
 - **Live and demo, the model wait never runs on the cBot thread**, and nothing but the final
   `BeginInvokeOnMainThread` continuation touches cTrader. In a visual backtest it is the opposite
   on purpose: `AssessAndWait` holds the cBot thread so the backtest's clock cannot run past the
@@ -88,7 +92,7 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 | `Broker/` | The trading boundary: ports `IBroker`, `ISymbolModel`; cAlgo adapters `CAlgoBroker`, `CAlgoSymbolModel`. |
 | `TradeLog/` | Trade CSV (`TradeCsvColumns`, `TradeCsvLogger`, `TradeCsvFile`, `CsvCell`, `TradeResultR`). |
 | `Chart/` | `VwapLines`, `SignalMarkers`. Drawing only. |
-| `Chartshots/` | `EntryChartshots` (takes `Chart.TakeChartshot()` per entry), `ChartshotFolder` (`~/Documents/TakeChartshot`, numbered `1.png`, `2.png`, …; pure). |
+| `Chartshots/` | `EntryChartshots` (takes `Chart.TakeChartshot()` per entry), `ChartshotFolder` (`~/Documents/TakeChartshot`, numbered `1.png`, `2.png`, …; pure), and for the AI: `AiChartshots` (when the picture is taken; pure), the port `IChartCamera` and its adapter `CAlgoChartCamera`. |
 | `TrendAssessment/` | The optional AI trend filter, all pure: `AiTrendFilter` (the flow), `TrendDirectionGate` (the rule), `TrendAssessmentClient` and `TrendAssessmentReply` (the service's HTTP contract), `TrendAssessmentRecorder` (`~/Documents/TrendAssessment`). |
 | `Models/` | Every data type, suffixed `Model`. Pure data only. |
 
@@ -100,7 +104,7 @@ Conventions:
 
 - **Pure by default.** A class without `using cAlgo.API` is pure and unit tested; keep new rules
   that way. cAlgo is touched only by the Robot, `Chart/`, the `Bars` readers,
-  `EntryChartshots` and the `Broker/` adapters. `Models/` is pure data; the test project links it wholesale.
+  `EntryChartshots`, `CAlgoChartCamera` and the `Broker/` adapters. `Models/` is pure data; the test project links it wholesale.
 - **Reader / rule pairs.** When a rule needs market data, one class reads `Bars` and another holds
   the rule, as in `VwapSeries`/`VwapCalculator`.
 - **Keep separate types separate:**

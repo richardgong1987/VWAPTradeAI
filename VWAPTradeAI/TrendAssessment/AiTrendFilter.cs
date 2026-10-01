@@ -48,7 +48,7 @@ public class AiTrendFilter {
     }
 
     // Live and demo. chartPng: the chart as the model should see it, taken before the signal's own
-    // marker was drawn. Null when cTrader could not take it (the chart is not visible).
+    // marker was drawn. Null when no current picture could be taken; AiChartshots has logged why.
     public void Submit(SignalModel signal, byte[] chartPng) {
         string requestId = Start(signal, chartPng);
 
@@ -72,8 +72,7 @@ public class AiTrendFilter {
     // The request ID, or null when there is nothing to send.
     private string Start(SignalModel signal, byte[] chartPng) {
         if (chartPng == null) {
-            _log($"AI trend unavailable | Signal: {signal.Level.Side} | Reason: The chart is not visible, so there is no picture to assess | " +
-                 "Trade rejected");
+            _log($"AI trend unavailable | Signal: {signal.Level.Side} | Reason: No current picture of the chart to assess | Trade rejected");
             return null;
         }
 

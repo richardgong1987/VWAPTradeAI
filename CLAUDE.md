@@ -31,9 +31,10 @@ seconds, so it is awaited off the cBot thread and applied back on it
 (`BeginInvokeOnMainThread`). It is fail closed: no picture, no valid answer, an unreadable chart
 or a signal that went stale all mean no trade. In a **visual backtest** the filter runs too, but
 the other way round: the backtest's clock would not wait, so `AiTrendFilter.AssessAndWait` holds
-the cBot thread until the answer is in (the backtest pauses), after a one-second pause that lets
-the backtest's chart catch up before the picture. Non-visual backtests and optimization have no
-chart, so `StartupCheck` refuses the filter there. The full design is in `docs/architecture.md`.
+the cBot thread until the answer is in (the backtest pauses). In every mode the picture is only
+taken once the chart shows the signal's bar (`AiChartshots`): a fast visual backtest draws its
+chart behind the cBot, and a chart can be scrolled back. Non-visual backtests and optimization have
+no chart, so `StartupCheck` refuses the filter there. The full design is in `docs/architecture.md`.
 
 **The stop and the target belong to the signal; the entry is the market price.** The stop sits
 `StopOffsetTicks` beyond the pattern's own stop; the target is `TakeProfitR × R` measured from the
@@ -57,13 +58,16 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
 - per closed bar (`OnBar`), AI filter off: `SignalDetector.DetectOnClosedBar` → chart marker
   (`SignalMarkers.Draw`, for every signal, whether or not its order goes out) →
   `OrderExecutor.TryEnter`;
-- per closed bar, AI filter on: `SignalDetector.DetectOnClosedBar` → `Chart.TakeChartshot()`
-  (**before** the marker, so the model never sees the strategy's own mark) → `SignalMarkers.Draw`
-  → `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
+- per closed bar, AI filter on: `AiChartshots.OnNewBar` (settles a signal whose picture never
+  came) → `SignalDetector.DetectOnClosedBar` → `AiChartshots.OnSignal`. Once the chart shows the
+  bar after the signal's (at once, after waiting in place up to 2 s in a backtest, or on a later
+  tick via `OnTick`), `Chart.TakeChartshot()` runs **before** the marker, so the model never sees
+  the strategy's own mark → `AssessPicturedSignal`: `SignalMarkers.Draw` →
+  `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
   `AiTrendFilter.Complete` → signal still the last closed bar? → `TrendDirectionGate` →
-  `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment. In a visual backtest the same
-  steps run, except that the picture follows a one-second pause and `AiTrendFilter.AssessAndWait`
-  replaces `Submit`: it waits for the answer and completes before `OnBar` returns;
+  `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment. In a visual backtest
+  `AiTrendFilter.AssessAndWait` replaces `Submit`: it waits for the answer and completes before
+  the handler returns;
 - per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
   (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
 
@@ -92,6 +96,13 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   `启动时清空交易记录CSV和截图` on it deletes the earlier runs' numbered pictures at start-up and
   starts again from 1, matching the reset trade CSV; off, numbering carries on after the highest
   number in the folder. Either way a picture is never overwritten.
+  The same folder holds the AI's picture: `AiChartshots` (pure, unit tested) decides *when* it is
+  taken, through the port `IChartCamera` and its cAlgo adapter `CAlgoChartCamera`. It waits until
+  the chart shows the bar after the signal's (`Chart.LastVisibleBarIndex`), holding the cBot thread
+  up to 2 s in a backtest and otherwise checking on each tick of the same bar, scrolls the chart to
+  the newest bar once after two ticks, and gives up with `AI chart not current` after a minute of
+  market time or at the next bar. It hands every signal on exactly once, with the picture or null,
+  and the marker is drawn after that.
 - `Orders/` — `RiskBudget` (how much account currency one trade may lose), `OrderPlanner` (sizing/geometry
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places
@@ -133,8 +144,8 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
 
 Rule of thumb: classes with no `using cAlgo.API` are pure and testable; keep them that way. cAlgo
 is touched only by the Robot, `Chart/`, the `Bars` readers (`VwapSeries`, `SignalDetector`),
-`EntryChartshots` and the `Broker/` adapters; none of those is linked into the test project. The
-AI filter's picture is taken by the Robot itself (`Chart.TakeChartshot()` in `OnBar`), which keeps
+`EntryChartshots`, `CAlgoChartCamera` and the `Broker/` adapters; none of those is linked into the
+test project. The AI's picture goes through `IChartCamera`, which keeps `AiChartshots` and
 `TrendAssessment/` free of cAlgo.
 
 ## Design patterns

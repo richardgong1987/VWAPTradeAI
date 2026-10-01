@@ -17,11 +17,12 @@
   <!-- Unit tests for the cBot's pure (cAlgo-free) logic. The classes under test are LINKED in
        below (never a ProjectReference) so the tests never pull in the cTrader.Automate /
        cAlgo.API dependency. Only cAlgo-free files may be linked here: never the Robot, the
-       Chart/ drawing, the Bars readers (VwapSeries, SignalDetector), EntryChartshots or the
-       Broker/ adapters. -->
+       Chart/ drawing, the Bars readers (VwapSeries, SignalDetector), EntryChartshots, CAlgoChartCamera
+       or the Broker/ adapters. -->
   <ItemGroup Label="Behavior under test">
     <Compile Include="..\..\VWAPTradeAI\StartupCheck.cs" Link="StartupCheck.cs" />
     <Compile Include="..\..\VWAPTradeAI\Chartshots\ChartshotFolder.cs" Link="Chartshots\ChartshotFolder.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Chartshots\AiChartshots.cs" Link="Chartshots\AiChartshots.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderExecutor.cs" Link="Orders\OrderExecutor.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\OrderPlanner.cs" Link="Orders\OrderPlanner.cs" />
     <Compile Include="..\..\VWAPTradeAI\Orders\RiskBudget.cs" Link="Orders\RiskBudget.cs" />
@@ -42,11 +43,12 @@
     <Compile Include="..\..\VWAPTradeAI\Vwap\VwapPeriod.cs" Link="Vwap\VwapPeriod.cs" />
   </ItemGroup>
 
-  <!-- The ports the pure classes depend on. Their cAlgo adapters (CAlgoBroker, CAlgoSymbolModel)
+  <!-- The ports the pure classes depend on. Their cAlgo adapters (CAlgoBroker, CAlgoSymbolModel, CAlgoChartCamera)
        are intentionally excluded; the tests supply fakes. -->
   <ItemGroup Label="Ports">
     <Compile Include="..\..\VWAPTradeAI\Broker\IBroker.cs" Link="Broker\IBroker.cs" />
     <Compile Include="..\..\VWAPTradeAI\Broker\ISymbolModel.cs" Link="Broker\ISymbolModel.cs" />
+    <Compile Include="..\..\VWAPTradeAI\Chartshots\IChartCamera.cs" Link="Chartshots\IChartCamera.cs" />
   </ItemGroup>
 
   <!-- Every data type: Models/ holds only pure data. -->

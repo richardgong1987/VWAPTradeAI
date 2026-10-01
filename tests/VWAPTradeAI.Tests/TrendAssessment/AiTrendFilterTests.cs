@@ -151,13 +151,13 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
 
         [Fact]
         public void without_a_picture_nothing_is_asked_and_nothing_is_entered() {
-            // Chart.TakeChartshot gives null when the chart is not visible.
+            // AiChartshots hands over null when the chart is hidden or never showed the signal's bar.
             Filter().Submit(_signal, chartPng: null);
             RunMainThread();
 
             Assert.Empty(_requests);
             Assert.Empty(_entered);
-            Assert.Equal("AI trend unavailable | Signal: Buy | Reason: The chart is not visible, so there is no picture to assess | Trade rejected",
+            Assert.Equal("AI trend unavailable | Signal: Buy | Reason: No current picture of the chart to assess | Trade rejected",
                 Assert.Single(_log));
         }
 

@@ -52,11 +52,7 @@ public class VWAPTradeAI : Robot
     private OrderExecutor _orderExecutor;
     private TrendAssessmentClient _trendAssessmentClient; // null with the AI trend filter off
     private AiTrendFilter _aiTrendFilter; // null with the AI trend filter off
-
-    // A visual backtest draws its chart behind the cBot, and a picture taken at once has shown a
-    // chart many bars old, or empty. A short pause first lets the chart catch up. One second is an
-    // estimate, not a measured figure: the recorded AI pictures show whether it is enough.
-    private static readonly TimeSpan BacktestChartCatchUp = TimeSpan.FromSeconds(1);
+    private AiChartshots _aiChartshots; // null with the AI trend filter off
 
     protected override void OnStart() {
         LaunchDebug();
@@ -84,8 +80,10 @@ public class VWAPTradeAI : Robot
         _orderExecutor.PositionOpened += (_, _) => entryChartshots.Take();
         _orderExecutor.PositionClosed += tradeLog.RecordClose;
 
-        if (IsAiTrendFilterEnabled)
+        if (IsAiTrendFilterEnabled) {
             _aiTrendFilter = BuildAiTrendFilter();
+            _aiChartshots = BuildAiChartshots();
+        }
 
         Print("*****VWAP break and reverse started.");
     }
@@ -94,41 +92,43 @@ public class VWAPTradeAI : Robot
         // The newly closed bar's VWAP first: drawing and signal detection both read it.
         _vwapSeries.Update();
         _vwapLines.Draw();
+        // A signal from the last bar whose picture never came is settled before a new one.
+        _aiChartshots?.OnNewBar();
 
         SignalModel signal = _signalDetector.DetectOnClosedBar();
 
         if (signal == null)
             return;
 
-        bool isAiTrendFilterOn = _aiTrendFilter != null;
-
-        // The AI's picture is taken before this signal's marker is drawn: a model that sees the
-        // strategy's own BUY/SELL mark is nudged towards the answer the strategy hopes for.
-        byte[] unmarkedChartPng = isAiTrendFilterOn ? TakeUnmarkedChartshot() : null;
-
-        // The chart shows every signal, whether or not its order goes out.
-        _signalMarkers.Draw(signal);
-
-        if (isAiTrendFilterOn) {
-            if (IsBacktesting)
-                // Pauses the backtest until the model has answered; the signal is decided on this bar.
-                _aiTrendFilter.AssessAndWait(signal, unmarkedChartPng);
-            else
-                // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
-                _aiTrendFilter.Submit(signal, unmarkedChartPng);
-
+        if (_aiChartshots != null) {
+            // The marker is drawn once the AI's picture is taken (AssessPicturedSignal), so the
+            // model never sees the strategy's own BUY/SELL mark.
+            _aiChartshots.OnSignal(signal);
             return;
         }
 
+        // The chart shows every signal, whether or not its order goes out.
+        _signalMarkers.Draw(signal);
         // The executor logs the gate that stopped an order, so the result needs nothing more here.
         _orderExecutor.TryEnter(signal, out _);
     }
 
-    private byte[] TakeUnmarkedChartshot() {
-        if (IsBacktesting)
-            Thread.Sleep(BacktestChartCatchUp);
+    // Only the AI filter uses ticks: a signal whose bar the chart has not drawn yet waits here.
+    protected override void OnTick() {
+        _aiChartshots?.OnTick();
+    }
 
-        return Chart.TakeChartshot();
+    // Called once per signal by AiChartshots, with the picture, or null when none could be taken.
+    private void AssessPicturedSignal(SignalModel signal, byte[] unmarkedChartPng) {
+        // The chart shows every signal, whether or not its order goes out.
+        _signalMarkers.Draw(signal);
+
+        if (IsBacktesting)
+            // Pauses the backtest until the model has answered; the signal is decided on this bar.
+            _aiTrendFilter.AssessAndWait(signal, unmarkedChartPng);
+        else
+            // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
+            _aiTrendFilter.Submit(signal, unmarkedChartPng);
     }
 
     protected override void OnStop() {
@@ -196,6 +196,12 @@ public class VWAPTradeAI : Robot
         // OnBar fires as a new bar opens, so the last closed bar is Count - 2 (as in SignalDetector).
         return new AiTrendFilter(_trendAssessmentClient.AssessAsync, BeginInvokeOnMainThread, () => Bars.Count - 2, _orderExecutor.TryEnter,
             BuildTrendAssessmentRecorder(), Log);
+    }
+
+    // The AI's picture waits until the chart shows the signal's bar. Only a backtest may hold the
+    // cBot thread for that; live, the waiting is done across ticks.
+    private AiChartshots BuildAiChartshots() {
+        return new AiChartshots(new CAlgoChartCamera(Chart), IsBacktesting, Thread.Sleep, () => Server.Time, AssessPicturedSignal, Log);
     }
 
     // Null unless the AI's pictures and answers are being kept for evaluation.
