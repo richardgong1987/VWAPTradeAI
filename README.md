@@ -48,8 +48,8 @@ With `启用AI趋势过滤` on, a signal must be confirmed by a local vision mod
 ```text
 AI filter off (default):   signal → marker → order gates → order
 
-AI filter on:              signal → screenshot of the chart (before the marker is drawn)
-                                  → marker
+AI filter on:              signal → marker
+                                  → screenshot of the chart (with the marker on it)
                                   → local AI assessment (several seconds, in the background)
                                   → AI gate
                                   → order gates → order

@@ -59,11 +59,11 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
   (`SignalMarkers.Draw`, for every signal, whether or not its order goes out) →
   `OrderExecutor.TryEnter`;
 - per closed bar, AI filter on: `AiChartshots.OnNewBar` (settles a signal whose picture never
-  came) → `SignalDetector.DetectOnClosedBar` → `AiChartshots.OnSignal`. Once the chart shows the
-  bar after the signal's (at once, or on a later tick via `OnTick`; a backtest pauses 100 ms
-  after each look that finds the chart behind), `Chart.TakeChartshot()` runs **before** the marker, so the model never sees
-  the strategy's own mark → `AssessPicturedSignal`: `SignalMarkers.Draw` →
-  `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
+  came) → `SignalDetector.DetectOnClosedBar` → `SignalMarkers.Draw` → `AiChartshots.OnSignal`.
+  Once the chart shows the bar after the signal's (at once, or on a later tick via `OnTick`; a
+  backtest pauses 100 ms after each look that finds the chart behind), `Chart.TakeChartshot()`
+  runs **after** the marker, so the picture shows which signal was judged →
+  `AssessPicturedSignal`: `AiTrendFilter.Submit`, which returns at once. Later, on the cBot thread:
   `AiTrendFilter.Complete` → signal still the last closed bar? → `TrendDirectionGate` →
   `OrderExecutor.TryEnter`, which reads the Ask/Bid of that moment. In a visual backtest
   `AiTrendFilter.AssessAndWait` replaces `Submit`: it waits for the answer and completes before
@@ -104,7 +104,8 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   never helped), so in a backtest each look that finds the chart behind ends with a 100 ms pause.
   It gives up with `AI chart not current` at the next bar, or earlier: live after a minute of
   market time, in a backtest after 50 pauses (5 s), because backtest market time races. It hands
-  every signal on exactly once, with the picture or null, and the marker is drawn after that.
+  every signal on exactly once, with the picture or null. The marker is already drawn when it
+  starts, so the picture shows it.
 - `Orders/` — `RiskBudget` (how much account currency one trade may lose), `OrderPlanner` (sizing/geometry
   from the signal and the entry price, and every reason a plan is rejected) — all pure,
   unit tested — and `OrderExecutor`: `TryEnter` checks the order gates, reads the quote, places
@@ -122,7 +123,7 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   backtest) does the same but waits for the answer, so the backtest pauses. `TrendAssessmentRecorder`
   (only with `保存AI评估截图` on) keeps the exact PNG and a JSON file per assessment under
   `~/Documents/TrendAssessment`, which is never cleared. This is a different picture from
-  `Chartshots/`: that one is taken after the entry, with the marker, as a trade record.
+  `Chartshots/`: that one is taken after the entry, as a trade record.
 - `Broker/` — the boundary to cTrader's trading API: the ports `IBroker` (clock, equity, quote,
   positions, market orders, closes) and `ISymbolModel` (symbol facts for sizing), and their cAlgo
   adapters `CAlgoBroker` and `CAlgoSymbolModel`, which translate and decide nothing. The adapters

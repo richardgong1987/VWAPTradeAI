@@ -3,10 +3,10 @@ using System.Diagnostics;
 
 namespace cAlgo.Robots;
 
-// The picture of the chart the AI is shown for a signal. It must show the signal's own bar, and it
-// must be taken before that signal's marker is drawn. Both have been missed before: in a fast visual
-// backtest the chart is drawn behind the cBot, and pictures taken at once ended one bar to an hour
-// and a half before the signal.
+// The picture of the chart the AI is shown for a signal. It must show the signal's own bar, which
+// has been missed before: in a fast visual backtest the chart is drawn behind the cBot, and pictures
+// taken at once ended one bar to an hour and a half before the signal. The signal's marker is
+// already drawn when OnSignal is called, so the picture shows it.
 //
 // So the picture is only taken once the chart shows the bar after the signal's (which means the
 // signal's bar is complete on screen):
@@ -24,8 +24,7 @@ namespace cAlgo.Robots;
 // of real time), not after a minute of market time.
 //
 // Whatever happens, onPicture is called once per signal: with the picture, or with null after
-// giving up, which the AI filter turns into a logged rejection. The signal's marker is drawn by
-// onPicture, so always after the picture.
+// giving up, which the AI filter turns into a logged rejection.
 //
 // Which of these steps a run needed is logged, because cTrader does not document how its chart
 // keeps up in a backtest.

@@ -100,15 +100,16 @@ public class VWAPTradeAI : Robot
         if (signal == null)
             return;
 
+        // The chart shows every signal, whether or not its order goes out. With the AI filter on it
+        // is drawn before the AI's picture is taken, so the picture shows which signal was judged.
+        _signalMarkers.Draw(signal);
+
         if (_aiChartshots != null) {
-            // The marker is drawn once the AI's picture is taken (AssessPicturedSignal), so the
-            // model never sees the strategy's own BUY/SELL mark.
+            // Pictures the chart once it shows the signal's bar, then AssessPicturedSignal.
             _aiChartshots.OnSignal(signal);
             return;
         }
 
-        // The chart shows every signal, whether or not its order goes out.
-        _signalMarkers.Draw(signal);
         // The executor logs the gate that stopped an order, so the result needs nothing more here.
         _orderExecutor.TryEnter(signal, out _);
     }
@@ -119,16 +120,13 @@ public class VWAPTradeAI : Robot
     }
 
     // Called once per signal by AiChartshots, with the picture, or null when none could be taken.
-    private void AssessPicturedSignal(SignalModel signal, byte[] unmarkedChartPng) {
-        // The chart shows every signal, whether or not its order goes out.
-        _signalMarkers.Draw(signal);
-
+    private void AssessPicturedSignal(SignalModel signal, byte[] chartPng) {
         if (IsBacktesting)
             // Pauses the backtest until the model has answered; the signal is decided on this bar.
-            _aiTrendFilter.AssessAndWait(signal, unmarkedChartPng);
+            _aiTrendFilter.AssessAndWait(signal, chartPng);
         else
             // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
-            _aiTrendFilter.Submit(signal, unmarkedChartPng);
+            _aiTrendFilter.Submit(signal, chartPng);
     }
 
     protected override void OnStop() {

@@ -23,7 +23,7 @@
         <mxCell id="p1-6" value="SignalDetector&#10;+ VWAP series&#10;&#10;finds the signal" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="60" y="176" width="130" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="p1-7" value="AiChartshots&#10;&#10;waits for the signal's bar,&#10;Chart.TakeChartshot(),&#10;then SignalMarkers.Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p1-7" value="AiChartshots&#10;&#10;after SignalMarkers.Draw,&#10;waits for the signal's bar,&#10;then Chart.TakeChartshot()" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="215" y="176" width="170" height="90" as="geometry" />
         </mxCell>
         <mxCell id="p1-8" value="AiTrendFilter&#10;&#10;async flow,&#10;eligibility check" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -124,7 +124,7 @@
         <mxCell id="p2-2" value="Signal to order (AI trend filter on, live and demo)" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1000" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="p2-3" value="The AI's picture is taken BEFORE the signal marker is drawn. The order is placed only after the model's answer, at the price of that moment." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p2-3" value="The signal marker is drawn BEFORE the AI's picture is taken. The order is placed only after the model's answer, at the price of that moment." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="40" y="54" width="1000" height="24" as="geometry" />
         </mxCell>
         <mxCell id="p2-4" value="cTrader main thread" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;dashed=1;dashPattern=6 4;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
@@ -148,10 +148,10 @@
         <mxCell id="p2-10" value="signal?" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rhombus;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="260" y="345" width="120" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p2-11" value="1.  AiChartshots: once the chart shows the signal's bar,&#10;Chart.TakeChartshot() -&gt; PNG in memory, no marker on it" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p2-11" value="1.  SignalMarkers.Draw(signal)&#10;the marker is on the chart before the picture" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="150" y="445" width="340" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="p2-12" value="2.  SignalMarkers.Draw(signal)&#10;the marker appears only after the picture" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p2-12" value="2.  AiChartshots: once the chart shows the signal's bar,&#10;Chart.TakeChartshot() -&gt; PNG in memory, marker on it" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="150" y="524" width="340" height="54" as="geometry" />
         </mxCell>
         <mxCell id="p2-13" value="AiTrendFilter.Submit(signal, png)&#10;OnBar returns immediately" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -276,7 +276,7 @@
         <mxCell id="p2-46" value="AI filter off (default)&#10;&#10;After the signal, the marker is drawn and OrderExecutor.TryEnter&#10;is called at once. No picture is taken for the AI and no request&#10;is sent: the steps in the other two lanes do not exist." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="880" width="490" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="p2-47" value="Why the order of steps 1 and 2 matters&#10;&#10;A model that sees the strategy's own BUY / SELL marker is nudged&#10;towards the answer the strategy hopes for. The marker is still&#10;drawn for every signal, whatever the AI decides." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="p2-47" value="Why the order of steps 1 and 2 matters&#10;&#10;The marker is in the picture, so a saved picture shows at a&#10;glance which signal the model judged. The marker is still&#10;drawn for every signal, whatever the AI decides." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="650" y="995" width="490" height="100" as="geometry" />
         </mxCell>
         <mxCell id="p2-48" value="Visual backtest&#10;&#10;Step 1 looks again on each tick of the bar, pausing 100 ms after each look&#10;(5 s at most) so the chart can catch up. Submit is AssessAndWait:&#10;the main thread waits for the answer, so the backtest stands still." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
@@ -419,10 +419,10 @@
         <mxCell id="p4-7" value="OnBar" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="60" y="150" width="80" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p4-8" value="wait for the&#10;signal's bar,&#10;TakeChartshot" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p4-8" value="SignalMarkers.&#10;Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="160" y="150" width="110" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p4-9" value="SignalMarkers.&#10;Draw" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="p4-9" value="wait for the&#10;signal's bar,&#10;TakeChartshot" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="290" y="150" width="110" height="70" as="geometry" />
         </mxCell>
         <mxCell id="p4-10" value="AiTrendFilter.&#10;Submit" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -664,7 +664,7 @@
         <mxCell id="p6-3" value="Two pictures with two purposes. They are separate mechanisms and are never merged." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;text;strokeColor=none;fillColor=none;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="40" y="54" width="1000" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="p6-4" value="AI input: taken BEFORE the entry, without the signal marker" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;dashed=1;dashPattern=6 4;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="p6-4" value="AI input: taken BEFORE the entry, with the signal marker" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=0;dashed=1;dashPattern=6 4;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="100" width="1100" height="290" as="geometry" />
         </mxCell>
         <mxCell id="p6-5" value="AiChartshots, once the&#10;chart shows the signal's bar:&#10;Chart.TakeChartshot()" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">

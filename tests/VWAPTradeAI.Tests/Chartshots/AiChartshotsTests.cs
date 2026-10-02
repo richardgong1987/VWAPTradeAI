@@ -5,28 +5,21 @@ using Xunit;
 
 namespace VWAPTradeAI.Tests.Chartshots {
     // When the AI's picture is taken. It must show the signal's own bar (the chart can lag behind
-    // the cBot, or be scrolled back), it must come before the signal's marker, and every signal must
-    // be handed on exactly once, with a picture or with null.
+    // the cBot, or be scrolled back), and every signal must be handed on exactly once, with a
+    // picture or with null.
     public class AiChartshotsTests {
         private static readonly byte[] Picture = { 0x89, 0x50, 0x4E, 0x47 };
 
         private readonly SignalModel _signal = TestSignal.Long(close: 100.0, stopLoss: 98.0); // on bar 42
         private readonly FakeChartCamera _camera = new() { LastVisibleBarIndex = 43 };
-        private readonly List<string> _events = new();
         private readonly List<(SignalModel Signal, byte[] Picture)> _handedOn = new();
         private readonly List<string> _log = new();
         private int _pauses;
         private DateTime _now = new(2026, 8, 4, 7, 5, 0);
 
-        public AiChartshotsTests() {
-            _camera.Events = _events;
-        }
-
         private AiChartshots Chartshots(bool isBacktest) {
-            return new AiChartshots(_camera, isBacktest, _ => _pauses++, () => _now, (signal, picture) => {
-                _events.Add("handed on");
-                _handedOn.Add((signal, picture));
-            }, _log.Add);
+            return new AiChartshots(_camera, isBacktest, _ => _pauses++, () => _now, (signal, picture) => _handedOn.Add((signal, picture)),
+                _log.Add);
         }
 
         [Theory]
@@ -40,13 +33,6 @@ namespace VWAPTradeAI.Tests.Chartshots {
             Assert.Same(Picture, picture);
             Assert.Equal(0, _pauses);
             Assert.Empty(_camera.Scrolls);
-        }
-
-        [Fact]
-        public void the_picture_is_taken_before_the_signal_is_handed_on_to_draw_its_marker() {
-            Chartshots(isBacktest: false).OnSignal(_signal);
-
-            Assert.Equal(new[] { "picture", "handed on" }, _events);
         }
 
         [Fact]
@@ -194,7 +180,7 @@ namespace VWAPTradeAI.Tests.Chartshots {
 
             Assert.Null(Assert.Single(_handedOn).Picture);
             Assert.Equal(0, _pauses);
-            Assert.DoesNotContain("picture", _events);
+            Assert.Equal(0, _camera.PicturesTaken);
             Assert.Contains(_log, line => line.Contains("Reason: the chart is not visible"));
         }
 
@@ -226,7 +212,7 @@ namespace VWAPTradeAI.Tests.Chartshots {
 
         // Stands in for cTrader's chart: which bars it shows, and what scrolling does to that.
         private sealed class FakeChartCamera : IChartCamera {
-            public List<string> Events { get; set; } = new();
+            public int PicturesTaken { get; private set; }
 
             public bool IsVisible { get; set; } = true;
 
@@ -247,7 +233,7 @@ namespace VWAPTradeAI.Tests.Chartshots {
             }
 
             public byte[] TakeChartshot() {
-                Events.Add("picture");
+                PicturesTaken++;
                 return IsVisible ? Picture : null;
             }
         }

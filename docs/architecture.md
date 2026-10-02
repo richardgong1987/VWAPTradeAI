@@ -50,7 +50,7 @@ Owns trading, and the decision whether to trade.
 | What | Where |
 | --- | --- |
 | Signal detection | `Signals/SignalDetector.cs` (unchanged by the filter) |
-| Taking the AI's picture once the chart shows the signal's bar, before the marker | `Chartshots/AiChartshots.cs` through `IChartCamera` (`Chart.TakeChartshot()`) |
+| Taking the AI's picture once the chart shows the signal's bar, with its marker | `Chartshots/AiChartshots.cs` through `IChartCamera` (`Chart.TakeChartshot()`) |
 | The asynchronous request and its return to the cBot thread | `TrendAssessment/AiTrendFilter.cs` |
 | Trade eligibility (the signal is still the last closed bar) | `TrendAssessment/AiTrendFilter.cs` |
 | The PASS / REJECT rule | `TrendAssessment/TrendDirectionGate.cs` |
@@ -94,15 +94,15 @@ With the filter on, live or demo, for each closed M5 bar (`OnBar`):
 1. `VwapSeries.Update` and `VwapLines.Draw`, as always. `AiChartshots.OnNewBar` settles a
    signal from the last bar whose picture never came (rejected, see below).
 2. `SignalDetector.DetectOnClosedBar`. No signal: nothing else happens.
-3. **`AiChartshots` takes the picture once the chart shows the signal's bar.** It checks
+3. **`SignalMarkers.Draw(signal)`** draws the marker, in `OnBar`. It is drawn for every detected
+   signal, whatever the AI later decides.
+4. **`AiChartshots` takes the picture once the chart shows the signal's bar.** It checks
    `Chart.LastVisibleBarIndex`: the chart must show the bar after the signal's, so the signal's
    own bar is complete on screen. Live this is normally true at once, or on the next tick. If the
    chart still has not caught up after two ticks, it is scrolled to the newest bar once. Then
-   **`Chart.TakeChartshot()`** returns the chart as PNG bytes, in memory. The signal's marker is
-   not on the chart yet. If the chart never shows the bar (a minute of market time, or the next
-   bar opens), there is no picture and the signal is rejected (`AI chart not current`).
-4. **`SignalMarkers.Draw(signal)`** draws the marker (`AssessPicturedSignal`). It is drawn for
-   every detected signal, whatever the AI later decides.
+   **`Chart.TakeChartshot()`** returns the chart as PNG bytes, in memory, with the signal's marker
+   on it. If the chart never shows the bar (a minute of market time, or the next bar opens),
+   there is no picture and the signal is rejected (`AI chart not current`).
 5. `AiTrendFilter.Submit(signal, png)` starts the request and returns, as does the handler
    (`OnBar`, or the `OnTick` on which the picture was taken).
 6. On a thread-pool thread, `TrendAssessmentClient` posts the picture to
@@ -120,10 +120,10 @@ With the filter on, live or demo, for each closed M5 bar (`OnBar`):
     `TradeCsvLogger.RecordEntry` and `EntryChartshots.Take()`. Later, `PositionClosed` runs
     `TradeCsvLogger.RecordClose`.
 
-Steps 3 and 4 are in that order on purpose. A model that sees the strategy's own BUY or SELL
-marker is nudged towards the answer the strategy hopes for, so the picture is taken first.
+Steps 3 and 4 are in that order on purpose: the picture shows the signal's own marker, so a
+saved picture shows at a glance which signal the model judged.
 
-In a visual backtest the steps are the same with two differences. In step 3, each look that
+In a visual backtest the steps are the same with two differences. In step 4, each look that
 finds the chart behind ends with a 100 ms pause, so the backtest slows down for that bar and the
 chart catches up before the next tick; the wait ends after 50 pauses (5 s) instead of a minute of
 market time. Step 5 is `AiTrendFilter.AssessAndWait`, which waits
@@ -131,8 +131,7 @@ for the answer instead of returning: steps 6 to 11 then happen before the handle
 step 7 needs no hand-off because the cBot thread never left. See
 [Backtest behavior](#backtest-behavior).
 
-With the filter off, steps 3 and 5 to 9 do not exist: after step 2 the marker is drawn and
-`TryEnter` is called at once.
+With the filter off, steps 4 to 9 do not exist: after step 3 `TryEnter` is called at once.
 
 ## AI decision rules
 
@@ -170,8 +169,8 @@ Two different pictures are taken, for two different purposes, by two separate me
 
 | | AI input | Trade audit record |
 | --- | --- | --- |
-| Taken | In `OnBar`, right after the signal is detected | After a position opens (`PositionOpened`) |
-| Signal marker on it | No | Yes |
+| Taken | Once the chart shows the signal's bar, after its marker is drawn | After a position opens (`PositionOpened`) |
+| Signal marker on it | Yes | Yes |
 | Code | `VWAPTradeAI.cs` → `AiTrendFilter` | `Chartshots/EntryChartshots.cs` → `ChartshotFolder` |
 | Normally kept | No, in memory only | Yes |
 | Folder | `~/Documents/TrendAssessment/` (only when recording is on) | `~/Documents/TakeChartshot/` |
@@ -460,8 +459,9 @@ Things the design does not solve, which matter when the filter is on:
 - **The chart must be visible.** cTrader only takes a screenshot of a chart that is on screen.
   Otherwise every signal is rejected.
 - **The model sees whatever is on screen.** The bot makes sure the signal's bar is shown, and
-  scrolls the chart once if it is not, but the zoom is yours: keep it at a sensible span. Markers of earlier signals and position lines are in the picture; the prompt tells
-  the model to ignore them.
+  scrolls the chart once if it is not, but the zoom is yours: keep it at a sensible span. Signal
+  markers (this signal's included) and position lines are in the picture; the prompt tells the
+  model to ignore them.
 - **The entry is later than without the filter.** The order goes out some seconds after the bar
   opens, at the price of that moment, so the risk-to-reward ratio drifts a little more.
 - **One assessment at a time.** Ollama handles requests one after another. Several cBot instances

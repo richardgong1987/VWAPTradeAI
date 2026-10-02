@@ -22,8 +22,9 @@ Once per closed bar:
    order goes out.
 4. **AI trend gate, only with `启用AI趋势过滤` on** (off by default; then step 5 follows at once).
    `AiChartshots` takes `Chart.TakeChartshot()` once the chart shows the signal's bar (looking
-   again on the following ticks of the same bar, a backtest pausing 100 ms on each, up to 5 s) and *before* step 3
-   draws the marker, then the picture goes to `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
+   again on the following ticks of the same bar, a backtest pausing 100 ms on each, up to 5 s),
+   *after* step 3 has drawn the marker, so the picture shows which signal was judged. The
+   picture goes to `AiTrendFilter.Submit`, which returns immediately. The local TrendAssessmentModel service
    answers some seconds later; back on the cBot thread the signal must still be the last closed
    bar and pass `TrendDirectionGate` (Buy + UP, or Sell + DOWN, and a daily VWAP that is not
    FLAT). Anything else, including any failure, is a logged rejection. In a visual backtest,
@@ -48,11 +49,11 @@ Breaking one of these changes trading results silently, so treat them as fixed:
 - **With the AI filter on, the only other caller of `TryEnter` is `AiTrendFilter`**, on the cBot
   thread, for a signal that is still the last closed bar. It is fail closed: a missing picture, a
   failed or invalid answer, an unreadable chart or a stale signal never trades.
-- **The AI's picture is taken before the signal's marker is drawn, and only once the chart shows
-  the signal's bar.** A model that sees the strategy's own BUY/SELL mark is biased towards it, and
-  one that sees an old chart judges the wrong moment. The marker is drawn in
-  `AssessPicturedSignal`, after `AiChartshots` has taken the picture; keep it there. A signal with
-  no current picture is rejected, never sent with an old one.
+- **The AI's picture is taken after the signal's marker is drawn, and only once the chart shows
+  the signal's bar.** The marker is in the picture so a saved picture shows which signal was
+  judged; a model that sees an old chart judges the wrong moment. `OnBar` draws the marker before
+  it hands the signal to `AiChartshots`; keep it there. A signal with no current picture is
+  rejected, never sent with an old one.
 - **Live and demo, the model wait never runs on the cBot thread**, and nothing but the final
   `BeginInvokeOnMainThread` continuation touches cTrader. In a visual backtest it is the opposite
   on purpose: `AssessAndWait` holds the cBot thread so the backtest's clock cannot run past the

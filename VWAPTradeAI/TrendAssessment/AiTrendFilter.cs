@@ -47,8 +47,8 @@ public class AiTrendFilter {
         _log = log;
     }
 
-    // Live and demo. chartPng: the chart as the model should see it, taken before the signal's own
-    // marker was drawn. Null when no current picture could be taken; AiChartshots has logged why.
+    // Live and demo. chartPng: the chart as the model should see it, the signal's own marker on it.
+    // Null when no current picture could be taken; AiChartshots has logged why.
     public void Submit(SignalModel signal, byte[] chartPng) {
         string requestId = Start(signal, chartPng);
 

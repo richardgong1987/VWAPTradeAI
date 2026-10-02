@@ -15,7 +15,7 @@ namespace cAlgo.Robots;
 //
 // This is evaluation data, so it only ever grows: nothing here is cleared at start-up. It is a
 // separate thing from the numbered pictures of opened trades (ChartshotFolder), which are taken
-// after the entry and show the signal marker.
+// after the entry as a trade record.
 //
 // Pure: no cAlgo dependency, unit tested.
 public class TrendAssessmentRecorder {

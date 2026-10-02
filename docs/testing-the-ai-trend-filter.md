@@ -155,7 +155,7 @@ may wait a while for one. When it comes, the log shows, in this order:
 AI trend requested | Signal: Buy L_Pin_1 | RequestId: 7f3c2a9e5d414b0fa1c6e2b8d4a90c13
 ```
 
-The marker appears on the chart at the same moment. Some seconds later, one of these:
+The marker is already on the chart by then. Some seconds later, one of these:
 
 ```text
 AI trend accepted | Signal: Buy | Trend: UP | TrendConfidence: 0.85 | DailyVWAP: RISING | DailyVWAPConfidence: 0.9 | ElapsedMs: 6120
@@ -196,7 +196,7 @@ inside cTrader, so check them first.
 
 | # | Check | How | You should see |
 | --- | --- | --- | --- |
-| 1 | The AI's picture has no marker for its own signal | Open the newest `.png` in `~/Documents/TrendAssessment` | The chart up to the latest bars. Markers of earlier signals may be there; the marker of this signal must not be |
+| 1 | The AI's picture shows its own signal's marker | Open the newest `.png` in `~/Documents/TrendAssessment` | The chart up to the latest bars, with this signal's triangle and label on the signal bar |
 | 2 | The picture shows the right moment | Same picture | The latest bars, with the signal bar among the last two on the right |
 | 3 | The order follows the answer | An accepted signal | `AI trend accepted`, then `Order submitted`, a few seconds after the bar opened. The cBot stays responsive meanwhile |
 | 4 | A rejected signal does not trade | A rejected signal | `AI trend rejected`, no order, and the marker stays on the chart |
