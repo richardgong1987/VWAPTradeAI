@@ -122,7 +122,8 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   still the last closed bar and passes the gate goes to `TryEnter`; `AssessAndWait` (visual
   backtest) does the same but waits for the answer, so the backtest pauses. `TrendAssessmentRecorder`
   (only with `保存AI评估截图` on) keeps the exact PNG and a JSON file per assessment under
-  `~/Documents/TrendAssessment`, which is never cleared. This is a different picture from
+  `~/Documents/TrendAssessment`; with `启动时清空AI评估截图` on (off by default) it deletes the
+  earlier runs' `.png` and `.json` files at start-up. This is a different picture from
   `Chartshots/`: that one is taken after the entry, as a trade record.
 - `Broker/` — the boundary to cTrader's trading API: the ports `IBroker` (clock, equity, quote,
   positions, market orders, closes) and `ISymbolModel` (symbol facts for sizing), and their cAlgo

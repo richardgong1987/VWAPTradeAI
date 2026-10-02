@@ -174,7 +174,7 @@ Two different pictures are taken, for two different purposes, by two separate me
 | Code | `VWAPTradeAI.cs` → `AiTrendFilter` | `Chartshots/EntryChartshots.cs` → `ChartshotFolder` |
 | Normally kept | No, in memory only | Yes |
 | Folder | `~/Documents/TrendAssessment/` (only when recording is on) | `~/Documents/TakeChartshot/` |
-| Cleared at start-up | Never | Yes, when `启动时清空交易记录CSV和截图` is on |
+| Cleared at start-up | Yes, when `启动时清空AI评估截图` is on (off by default) | Yes, when `启动时清空交易记录CSV和截图` is on |
 
 **Pre-AI screenshot.** PNG bytes from `Chart.TakeChartshot()`, taken by `AiChartshots` once the
 chart shows the signal's bar, sent to the service and then dropped.
@@ -212,8 +212,10 @@ the request ID:
 ```
 
 `outcome` is `OK`, `UNREADABLE` or `UNAVAILABLE`. Rejected and failed assessments are recorded too,
-as long as there was a picture. This folder is evaluation and future training data, so nothing in
-it is ever deleted by the cBot. A failed write is logged and never affects trading.
+as long as there was a picture. The records accumulate across runs, as evaluation and future
+training data. With `启动时清空AI评估截图` on, a run that records deletes the earlier runs' `.png` and
+`.json` files at start-up; other files in the folder stay. A failed write is logged and never
+affects trading.
 
 **Post-entry `EntryChartshots`.** Unchanged by the filter: one numbered picture per opened trade,
 `1.png`, `2.png`, and so on.
@@ -451,6 +453,7 @@ cBot parameters, in the group `AI趋势判断`:
 | `AI服务地址` | `http://127.0.0.1:8787` | The TrendAssessmentModel service |
 | `AI超时秒数` | 30 | How long to wait for one assessment; 1 to 240 |
 | `保存AI评估截图` | false | Keep the AI's input picture and answer |
+| `启动时清空AI评估截图` | false | Delete the earlier runs' kept pictures and answers at start-up |
 
 ## Operating notes
 

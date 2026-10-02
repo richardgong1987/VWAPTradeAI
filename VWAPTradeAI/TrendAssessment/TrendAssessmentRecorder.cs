@@ -13,22 +13,28 @@ namespace cAlgo.Robots;
 //   20260930-220500_XAUUSD_7f3c2a9e.png
 //   20260930-220500_XAUUSD_7f3c2a9e.json
 //
-// This is evaluation data, so it only ever grows: nothing here is cleared at start-up. It is a
-// separate thing from the numbered pictures of opened trades (ChartshotFolder), which are taken
-// after the entry as a trade record.
+// It is a separate thing from the numbered pictures of opened trades (ChartshotFolder), which are
+// taken after the entry as a trade record.
 //
 // Pure: no cAlgo dependency, unit tested.
 public class TrendAssessmentRecorder {
     private const string FolderName = "TrendAssessment";
+    private const string PictureExtension = ".png";
+    private const string JsonExtension = ".json";
 
     private static readonly JsonWriterOptions Indented = new() { Indented = true };
 
     private readonly string _symbol;
 
-    public TrendAssessmentRecorder(string directoryPath, string symbol) {
+    // resetOnStart: delete the earlier runs' records, so the folder holds only this run's
+    // assessments. Off, the records accumulate across runs.
+    public TrendAssessmentRecorder(bool resetOnStart, string directoryPath, string symbol) {
         DirectoryPath = directoryPath;
         _symbol = symbol;
         Directory.CreateDirectory(directoryPath);
+
+        if (resetOnStart)
+            DeleteRecords();
     }
 
     public static string DirectoryIn(string documentsPath) {
@@ -42,11 +48,18 @@ public class TrendAssessmentRecorder {
         // The bar time orders the files; the request ID keeps two instances on one symbol apart.
         string name = string.Format(CultureInfo.InvariantCulture, "{0:yyyyMMdd-HHmmss}_{1}_{2}", record.Signal.BarTime, _symbol,
             record.RequestId.Substring(0, 8));
-        string picturePath = Path.Combine(DirectoryPath, name + ".png");
+        string picturePath = Path.Combine(DirectoryPath, name + PictureExtension);
 
         IoFile.WriteAllBytes(picturePath, chartPng);
-        IoFile.WriteAllBytes(Path.Combine(DirectoryPath, name + ".json"), ToJson(record));
+        IoFile.WriteAllBytes(Path.Combine(DirectoryPath, name + JsonExtension), ToJson(record));
         return picturePath;
+    }
+
+    // Only the two kinds of file Save writes; anything else in the folder is not ours, and stays.
+    private void DeleteRecords() {
+        foreach (string extension in new[] { PictureExtension, JsonExtension })
+            foreach (string path in Directory.GetFiles(DirectoryPath, "*" + extension))
+                IoFile.Delete(path);
     }
 
     private byte[] ToJson(TrendAssessmentRecordModel record) {

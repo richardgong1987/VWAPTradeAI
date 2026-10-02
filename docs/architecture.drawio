@@ -688,7 +688,7 @@
         <mxCell id="p6-11" value="~/Documents/TrendAssessment/&#10;&lt;bar time&gt;_&lt;symbol&gt;_&lt;id&gt;.png&#10;&lt;bar time&gt;_&lt;symbol&gt;_&lt;id&gt;.json" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;rounded=1;arcSize=12;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="920" y="260" width="200" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="p6-12" value="Evaluation / training data.&#10;The exact PNG that was sent, plus the answer,&#10;the gate's decision and the order result.&#10;Never cleared at start-up." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="p6-12" value="Evaluation / training data.&#10;The exact PNG that was sent, plus the answer,&#10;the gate's decision and the order result.&#10;Cleared at start-up only with 启动时清空AI评估截图." style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;shape=note;size=14;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;spacingRight=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="700" y="140" width="420" height="90" as="geometry" />
         </mxCell>
         <mxCell id="p6-13" value="" style="html=0;fontFamily=Helvetica;fontColor=#1a1a1a;edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p6-5" target="p6-6">

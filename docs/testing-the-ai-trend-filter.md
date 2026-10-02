@@ -118,6 +118,7 @@ Parameters for a test run:
 | `AI服务地址` | `http://127.0.0.1:8787` | The default |
 | `AI超时秒数` | 30 | The default |
 | `保存AI评估截图` | **true** | Keeps every picture and answer so you can review them |
+| `启动时清空AI评估截图` | your choice | True starts each run with an empty folder; false (the default) keeps earlier runs' pictures |
 
 `启用AI趋势过滤` and `保存AI评估截图` are off by default, and cTrader keeps the saved values of an
 existing instance, so check both on the instance you start.
@@ -293,7 +294,8 @@ and the symbol. The `.png` is exactly what the model was sent. The `.json` says 
 | `order_placed`, `order_reject_reason` | Whether an order went out after a `PASS`, and if not, why |
 | `elapsed_ms` | How long the answer took |
 
-This folder is never cleared by the bot. It is the material for judging the model: look at a
+The files accumulate across runs. With `启动时清空AI评估截图` on, the bot deletes them at every start
+instead, so copy the folder first if you want to keep them. It is the material for judging the model: look at a
 picture, decide what you would have answered, and compare. When the model is wrong, follow
 [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md)
 (`docs/CORRECTING_THE_MODEL.md` in the TrendAssessmentModel project).

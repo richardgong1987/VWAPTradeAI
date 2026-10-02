@@ -135,9 +135,10 @@ it is not. Each decision is logged as `AI trend accepted`, `AI trend rejected`,
 
 **Keeping the AI's input.** With `保存AI评估截图` on, every assessment saves the exact picture the
 model was sent, and a JSON file with the answer, the gate's decision and whether an order went
-out, under `~/Documents/TrendAssessment`. This is evaluation data: it is never cleared at
-start-up, and it is separate from the [entry screenshots](#entry-screenshots), which are taken
-after a trade opens.
+out, under `~/Documents/TrendAssessment`. They accumulate across runs unless
+`启动时清空AI评估截图` is on, which deletes the earlier runs' pictures and JSON files at start-up.
+They are separate from the [entry screenshots](#entry-screenshots), which are taken after a trade
+opens.
 
 **Step by step.** [docs/testing-the-ai-trend-filter.md](docs/testing-the-ai-trend-filter.md)
 walks through starting everything, the log lines to expect, what to check and what to do when
@@ -169,6 +170,7 @@ The labels are the ones shown in cTrader.
 | AI服务地址 | Where the TrendAssessmentModel service listens. Default `http://127.0.0.1:8787`. |
 | AI超时秒数 | How long to wait for one assessment before rejecting the signal. Default 30, at most 240. Keep it above the service's own limit (25 s). |
 | 保存AI评估截图 | Off by default. On, keeps the AI's input picture and its answer under `~/Documents/TrendAssessment`. |
+| 启动时清空AI评估截图 | Off by default. On, deletes the earlier runs' pictures and answers in `~/Documents/TrendAssessment` when the bot starts with `保存AI评估截图` on. |
 | **开发调试** | |
 | 启动时清空交易记录CSV和截图 | Empty the trade CSV and delete the numbered entry screenshots when the bot starts. |
 | debug调试 | Call `Debugger.Launch()` in `OnStart`. See [Debugging](#debugging). |

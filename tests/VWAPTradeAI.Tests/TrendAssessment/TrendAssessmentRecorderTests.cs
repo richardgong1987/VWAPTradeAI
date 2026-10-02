@@ -7,7 +7,7 @@ using Xunit;
 
 namespace VWAPTradeAI.Tests.TrendAssessment {
     // The evaluation data set: the exact picture the AI was sent, and what came of it, side by side.
-    // It must only ever grow.
+    // A reset at start-up clears the earlier runs' records, and only those.
     public class TrendAssessmentRecorderTests : IDisposable {
         private const string RequestId = "7f3c2a9e5d414b0fa1c6e2b8d4a90c13";
         private static readonly byte[] ChartPng = { 0x89, 0x50, 0x4E, 0x47, 1, 2, 3 };
@@ -19,7 +19,9 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
                 Directory.Delete(_directory, recursive: true);
         }
 
-        private TrendAssessmentRecorder Recorder() => new(_directory, "XAUUSD");
+        private TrendAssessmentRecorder Recorder(bool resetOnStart = false) => new(resetOnStart, _directory, "XAUUSD");
+
+        private string[] FileNames() => Directory.GetFiles(_directory).Select(Path.GetFileName).OrderBy(name => name).ToArray();
 
         private static TrendAssessmentRecordModel Record(TrendAssessmentResultModel assessment, string gateRejectReason = null,
             bool isOrderPlaced = true) {
@@ -98,13 +100,32 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
         }
 
         [Fact]
-        public void starting_again_keeps_everything_already_in_the_folder() {
+        public void without_a_reset_a_restart_keeps_the_earlier_records() {
             Recorder().Save(Record(TestAssessment.Of(TrendModel.Up, DailyVwapDirectionModel.Rising)), ChartPng);
-            string[] before = Directory.GetFiles(_directory).OrderBy(path => path).ToArray();
+            string[] before = FileNames();
 
             Recorder(); // a restart of the cBot
 
-            Assert.Equal(before, Directory.GetFiles(_directory).OrderBy(path => path).ToArray());
+            Assert.Equal(before, FileNames());
+        }
+
+        [Fact]
+        public void reset_on_start_deletes_the_earlier_runs_pictures_and_json_files() {
+            Recorder().Save(Record(TestAssessment.Of(TrendModel.Up, DailyVwapDirectionModel.Rising)), ChartPng);
+
+            Recorder(resetOnStart: true);
+
+            Assert.Empty(FileNames());
+        }
+
+        [Fact]
+        public void reset_on_start_leaves_files_the_recorder_did_not_write() {
+            Recorder().Save(Record(TestAssessment.Of(TrendModel.Up, DailyVwapDirectionModel.Rising)), ChartPng);
+            File.WriteAllText(Path.Combine(_directory, "notes.txt"), "");
+
+            Recorder(resetOnStart: true);
+
+            Assert.Equal(new[] { "notes.txt" }, FileNames());
         }
     }
 }

@@ -36,6 +36,11 @@ public class VWAPTradeAI : Robot
     [Parameter("保存AI评估截图", DefaultValue = false, Group = "AI趋势判断")]
     public bool IsAiAssessmentRecorded { get; set; }
 
+    // Deletes the earlier runs' saved AI pictures and answers at start-up. Off by default: they are
+    // the material for judging the model, and a deletion cannot be undone.
+    [Parameter("启动时清空AI评估截图", DefaultValue = false, Group = "AI趋势判断")]
+    public bool ResetAiAssessmentsOnStart { get; set; }
+
     [Parameter("启动时清空交易记录CSV和截图", DefaultValue = true, Group = "开发调试")]
     public bool ResetTradeLogOnStart { get; set; }
 
@@ -208,8 +213,9 @@ public class VWAPTradeAI : Robot
             return null;
 
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var recorder = new TrendAssessmentRecorder(TrendAssessmentRecorder.DirectoryIn(documentsPath), SymbolName);
-        Print("****AI assessment folder: {0}", recorder.DirectoryPath);
+        var recorder = new TrendAssessmentRecorder(ResetAiAssessmentsOnStart, TrendAssessmentRecorder.DirectoryIn(documentsPath),
+            SymbolName);
+        Print("****AI assessment folder: {0} | ClearedOnStart: {1}", recorder.DirectoryPath, ResetAiAssessmentsOnStart);
         return recorder;
     }
 
