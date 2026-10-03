@@ -16,9 +16,10 @@ namespace cAlgo.Robots;
 //   20260930-220500_XAUUSD_7f3c2a9e.json
 //
 // A recording worth labelling is moved, on request, into the hand-picked evaluation set
-// (TrendAssessmentEval), found by its signal's bar time. Only this run's recordings can be: the
-// folder may also hold an earlier run's recording of the same bar, and only the run that wrote a
-// file knows which one belongs to the marker on its chart.
+// (TrendAssessmentEval), found by its signal's bar time, and listed in that folder's labels.csv
+// for a person to label. Only this run's recordings can be: the folder may also hold an earlier
+// run's recording of the same bar, and only the run that wrote a file knows which one belongs to
+// the marker on its chart.
 //
 // It is a separate thing from the numbered pictures of opened trades (ChartshotFolder), which are
 // taken after the entry as a trade record.
@@ -33,6 +34,7 @@ public class TrendAssessmentRecorder {
     private static readonly JsonWriterOptions Indented = new() { Indented = true };
 
     private readonly string _symbol;
+    private readonly EvalLabelsFile _evalLabels;
 
     // A bar has at most one signal, so its time identifies the signal's recording.
     private readonly Dictionary<DateTime, string> _fileNameBySignalBarTime = new();
@@ -43,6 +45,7 @@ public class TrendAssessmentRecorder {
         DirectoryPath = directoryPath;
         EvalDirectoryPath = evalDirectoryPath;
         _symbol = symbol;
+        _evalLabels = new EvalLabelsFile(evalDirectoryPath);
         Directory.CreateDirectory(directoryPath);
 
         if (resetOnStart)
@@ -75,8 +78,9 @@ public class TrendAssessmentRecorder {
     }
 
     // Moves the recording of the signal on that bar into the evaluation set, picture and JSON
-    // together, and returns the picture's new path. When either file cannot move, neither does,
-    // and the IOException says why; nothing in the evaluation set is ever overwritten.
+    // together, lists the picture in labels.csv, and returns the picture's new path. When either
+    // file cannot move, neither does, and the IOException says why; nothing in the evaluation set
+    // is ever overwritten.
     public string MoveToEvalSet(DateTime signalBarTime) {
         if (!_fileNameBySignalBarTime.TryGetValue(signalBarTime, out string name))
             throw new FileNotFoundException("No AI recording of a signal on this bar in this run");
@@ -92,6 +96,9 @@ public class TrendAssessmentRecorder {
         }
 
         Directory.CreateDirectory(EvalDirectoryPath);
+        // Listed before the move: a failed listing then leaves nothing moved, and a row whose move
+        // failed is not listed again when the move is retried.
+        _evalLabels.EnsureListed(fileNames[0]);
 
         foreach (string fileName in fileNames)
             IoFile.Move(Path.Combine(DirectoryPath, fileName), Path.Combine(EvalDirectoryPath, fileName));

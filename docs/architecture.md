@@ -222,7 +222,12 @@ the signal on the clicked bar into `~/Documents/TrendAssessmentEval`, the hand-l
 (cTrader gives a cBot no right-click menu, so a modifier click stands in for one). The Robot turns
 the click into the nearest bar's time; `TrendAssessmentRecorder.MoveToEvalSet` finds the files it
 wrote for that signal in this run and moves both, or neither when either is missing or already in
-the evaluation folder. It is looked up in memory, not by file name, because the folder may also
+the evaluation folder. Before moving them it lists the picture in the folder's `labels.csv`
+through `EvalLabelsFile`: the columns `file,trend,daily_vwap_direction,reason` that `evaluate.py`
+in the service's `docs/CORRECTING_THE_MODEL.md` reads, the file name filled in and the labels
+blank, since they are a person's judgement. A picture already listed is not listed again, and
+rows already there are never changed. Listing first means a failed listing moves nothing, and a
+retried move does not list the picture twice. It is looked up in memory, not by file name, because the folder may also
 hold an earlier run's recording of the same bar. The marker is not made selectable for this: the
 cAlgo API documents that an interactive chart object is removed when the cBot stops, and the
 markers are meant to stay.

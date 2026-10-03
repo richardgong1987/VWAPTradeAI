@@ -71,9 +71,10 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
 - per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
   (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
 - per Shift+click on the chart, only with the AI filter and `保存AI评估截图` on: the clicked bar's
-  time → `TrendAssessmentRecorder.MoveToEvalSet`, which moves that signal's recorded picture and
-  JSON to `~/Documents/TrendAssessmentEval`. cTrader offers a cBot no right-click menu, so a
-  modifier click stands in for one.
+  time → `TrendAssessmentRecorder.MoveToEvalSet`, which lists the picture in that folder's
+  `labels.csv` (`EvalLabelsFile`) and moves that signal's recorded picture and JSON to
+  `~/Documents/TrendAssessmentEval`. cTrader offers a cBot no right-click menu, so a modifier
+  click stands in for one.
 
 It holds no rules of its own; anything resembling a decision belongs in one of the classes below.
 
@@ -89,6 +90,8 @@ other side stale, update that in the same task:
   `src/trend_assessment/schemas.py` and `api.py` there;
 - what the AI's screenshot shows (`AiChartshots`, `SignalMarkers`) against what the prompt tells
   the model to ignore (`src/trend_assessment/prompts.py`);
+- the `labels.csv` columns `EvalLabelsFile` writes against what `evaluate.py` in the service's
+  `docs/CORRECTING_THE_MODEL.md` reads (it skips a row whose trend is still blank);
 - docs that name the other side: the service's `docs/CORRECTING_THE_MODEL.md` refers to this
   cBot's `保存AI评估截图` and `启动时清空AI评估截图` switches and its `~/Documents/TrendAssessment`
   recordings.
@@ -148,8 +151,11 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   `~/Documents/TrendAssessment`; with `启动时清空AI评估截图` on (off by default) it deletes the
   earlier runs' `.png` and `.json` files at start-up. It remembers which files each of this run's
   signals got, so `MoveToEvalSet` can move a picked signal's pair into the hand-picked evaluation
-  set `~/Documents/TrendAssessmentEval`: both files or neither, never overwriting. This is a
-  different picture from `Chartshots/`: that one is taken after the entry, as a trade record.
+  set `~/Documents/TrendAssessmentEval`: both files or neither, never overwriting.
+  `EvalLabelsFile` lists each moved picture once in that folder's `labels.csv`
+  (`file,trend,daily_vwap_direction,reason`), labels blank for a person to fill in, and never
+  changes a row already there. This is a different picture from `Chartshots/`: that one is taken
+  after the entry, as a trade record.
 - `Broker/` — the boundary to cTrader's trading API: the ports `IBroker` (clock, equity, quote,
   positions, market orders, closes) and `ISymbolModel` (symbol facts for sizing), and their cAlgo
   adapters `CAlgoBroker` and `CAlgoSymbolModel`, which translate and decide nothing. The adapters

@@ -151,7 +151,7 @@ public class VWAPTradeAI : Robot
         DateTime barTime = Bars.OpenTimes[barIndex];
 
         try {
-            Log($"AI assessment moved to the evaluation set | {recorder.MoveToEvalSet(barTime)}");
+            Log($"AI assessment moved to the evaluation set | {recorder.MoveToEvalSet(barTime)} | Listed in labels.csv");
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             Log($"AI assessment not moved | Bar: {barTime:yyyy-MM-dd HH:mm} | {error.Message}");
         }

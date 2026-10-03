@@ -303,17 +303,30 @@ marker (or its candle) on the chart while the bot runs. Its `.png` and `.json` m
 `~/Documents/TrendAssessmentEval`, and the log says so:
 
 ```text
-AI assessment moved to the evaluation set | /Users/<you>/Documents/TrendAssessmentEval/20260930-220500_XAUUSD_7f3c2a9e.png
+AI assessment moved to the evaluation set | /Users/<you>/Documents/TrendAssessmentEval/20260930-220500_XAUUSD_7f3c2a9e.png | Listed in labels.csv
 AI assessment not moved | Bar: 2026-09-30 22:10 | No AI recording of a signal on this bar in this run
 ```
+
+The picture also gets a row in `~/Documents/TrendAssessmentEval/labels.csv`, in the format of
+[Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md),
+with the labels left for you:
+
+```csv
+file,trend,daily_vwap_direction,reason
+20260930-220500_XAUUSD_7f3c2a9e.png,,,
+```
+
+The file is created, header first, when there is none. A picture already listed is not listed
+again, and rows already there, labelled or not, are never changed, so you can label in the file
+while the bot keeps adding to it. Fill in `trend`, `daily_vwap_direction` and `reason` as that
+guide describes; until `trend` is filled in, `evaluate.py` skips the row.
 
 - It needs `启用AI趋势过滤` and `保存AI评估截图` on, and only reaches the signals of the running bot:
   after a restart, or once a visual backtest has ended, the bot no longer answers clicks. In a
   visual backtest, pause it, Shift+click, then resume.
 - A signal whose answer has not arrived yet has nothing to move; click again after its
   `AI assessment recorded` line.
-- `Already in the evaluation set` means it was moved before. Nothing there is ever overwritten,
-  and `labels.csv` is not touched: you still write the label. When the model is wrong, follow
+- `Already in the evaluation set` means it was moved before. Nothing there is ever overwritten. When the model is wrong, follow
 [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md)
 (`docs/CORRECTING_THE_MODEL.md` in the TrendAssessmentModel project).
 

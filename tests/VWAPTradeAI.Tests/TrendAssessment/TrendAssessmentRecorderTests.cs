@@ -153,8 +153,19 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
 
             Assert.Equal(Path.Combine(_evalDirectory, RecordingName + ".png"), picturePath);
             Assert.Equal(ChartPng, File.ReadAllBytes(picturePath));
-            Assert.Equal(new[] { RecordingName + ".json", RecordingName + ".png" }, FileNamesIn(_evalDirectory));
+            Assert.Equal(new[] { RecordingName + ".json", RecordingName + ".png", "labels.csv" }, FileNamesIn(_evalDirectory));
             Assert.Empty(FileNames());
+        }
+
+        [Fact]
+        public void a_picked_signal_is_listed_in_labels_csv_for_labelling() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+
+            recorder.MoveToEvalSet(SignalBarTime);
+
+            Assert.Equal(new[] { "file,trend,daily_vwap_direction,reason", RecordingName + ".png,,," },
+                File.ReadAllLines(Path.Combine(_evalDirectory, "labels.csv")));
         }
 
         [Fact]
@@ -208,7 +219,7 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
             Assert.Throws<FileNotFoundException>(() => recorder.MoveToEvalSet(SignalBarTime));
 
             Assert.Equal(new[] { RecordingName + ".png" }, FileNames());
-            Assert.Empty(FileNamesIn(_evalDirectory));
+            Assert.Empty(FileNamesIn(_evalDirectory)); // no labels.csv row for a picture that did not move
         }
     }
 }
