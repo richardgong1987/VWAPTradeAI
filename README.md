@@ -140,6 +140,12 @@ out, under `~/Documents/TrendAssessment`. They accumulate across runs unless
 They are separate from the [entry screenshots](#entry-screenshots), which are taken after a trade
 opens.
 
+**Picking recordings to label.** While the bot runs, **Shift+click** a signal's marker (or its
+candle) and that signal's picture and JSON move to `~/Documents/TrendAssessmentEval`, the folder
+you label for evaluation and training. The log says `AI assessment moved to the evaluation set`,
+or why not. It works for the signals of the running bot only: not after a restart, and not once a
+visual backtest has ended (pause it instead). Nothing in that folder is ever overwritten.
+
 **Step by step.** [docs/testing-the-ai-trend-filter.md](docs/testing-the-ai-trend-filter.md)
 walks through starting everything, the log lines to expect, what to check and what to do when
 something fails. When the model's reading of a chart is wrong, see

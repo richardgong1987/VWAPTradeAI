@@ -35,6 +35,8 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
             return new AiTrendFilter(Assess, _mainThread.Enqueue, () => _lastClosedBarIndex, TryEnter, recorder, _log.Add);
         }
 
+        private TrendAssessmentRecorder Recorder() => new(resetOnStart: false, _directory, Path.Combine(_directory, "Eval"), "XAUUSD");
+
         private Task<TrendAssessmentResultModel> Assess(string requestId, byte[] png) {
             _requests.Add((requestId, png));
             return _answer();
@@ -184,7 +186,7 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
         public void with_a_recorder_the_picture_and_the_outcome_are_kept() {
             _orderRejectReason = "Level VWAP already has an open position on XAUUSD";
 
-            Filter(new TrendAssessmentRecorder(resetOnStart: false, _directory, "XAUUSD")).Submit(_signal, ChartPng);
+            Filter(Recorder()).Submit(_signal, ChartPng);
             RunMainThread();
 
             string picturePath = Assert.Single(Directory.GetFiles(_directory, "*.png"));
@@ -199,7 +201,7 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
         public void a_rejected_assessment_is_recorded_too() {
             Answer(TestAssessment.Unavailable());
 
-            Filter(new TrendAssessmentRecorder(resetOnStart: false, _directory, "XAUUSD")).Submit(_signal, ChartPng);
+            Filter(Recorder()).Submit(_signal, ChartPng);
             RunMainThread();
 
             string json = File.ReadAllText(Assert.Single(Directory.GetFiles(_directory, "*.json")));
@@ -257,7 +259,7 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
 
         [Fact]
         public void in_a_backtest_the_assessment_is_recorded_like_any_other() {
-            Filter(new TrendAssessmentRecorder(resetOnStart: false, _directory, "XAUUSD")).AssessAndWait(_signal, ChartPng);
+            Filter(Recorder()).AssessAndWait(_signal, ChartPng);
 
             string picturePath = Assert.Single(Directory.GetFiles(_directory, "*.png"));
             Assert.Equal(ChartPng, File.ReadAllBytes(picturePath));

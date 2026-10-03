@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using cAlgo.API;
@@ -86,8 +87,12 @@ public class VWAPTradeAI : Robot
         _orderExecutor.PositionClosed += tradeLog.RecordClose;
 
         if (IsAiTrendFilterEnabled) {
-            _aiTrendFilter = BuildAiTrendFilter();
+            TrendAssessmentRecorder recorder = BuildTrendAssessmentRecorder();
+            _aiTrendFilter = BuildAiTrendFilter(recorder);
             _aiChartshots = BuildAiChartshots();
+
+            if (recorder != null)
+                Chart.MouseDown += click => MoveClickedSignalToEvalSet(click, recorder);
         }
 
         Print("*****VWAP break and reverse started.");
@@ -132,6 +137,24 @@ public class VWAPTradeAI : Robot
         else
             // Returns at once. A signal the AI passes reaches OrderExecutor later, on this thread.
             _aiTrendFilter.Submit(signal, chartPng);
+    }
+
+    // Shift+click on a signal's marker or candle moves that signal's AI picture and JSON into the
+    // evaluation set. cTrader gives a cBot no right-click menu of its own, so a modifier click
+    // stands in for one. Markers sit on their signal's bar, so the nearest bar is the one meant.
+    private void MoveClickedSignalToEvalSet(ChartMouseEventArgs click, TrendAssessmentRecorder recorder) {
+        int barIndex = (int)Math.Round(click.BarIndex);
+
+        if (!click.ShiftKey || barIndex < 0 || barIndex >= Bars.Count)
+            return;
+
+        DateTime barTime = Bars.OpenTimes[barIndex];
+
+        try {
+            Log($"AI assessment moved to the evaluation set | {recorder.MoveToEvalSet(barTime)}");
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            Log($"AI assessment not moved | Bar: {barTime:yyyy-MM-dd HH:mm} | {error.Message}");
+        }
     }
 
     protected override void OnStop() {
@@ -184,7 +207,7 @@ public class VWAPTradeAI : Robot
     }
 
     // Signal → local AI service → TrendDirectionGate → OrderExecutor. Only built with the filter on.
-    private AiTrendFilter BuildAiTrendFilter() {
+    private AiTrendFilter BuildAiTrendFilter(TrendAssessmentRecorder recorder) {
         _trendAssessmentClient = new TrendAssessmentClient(new Uri(AiServiceUrl.Trim()), TimeSpan.FromSeconds(AiTimeoutSeconds));
         Print("*****AI trend filter on | Service: {0}, TimeoutSeconds: {1}, Recording: {2}", AiServiceUrl.Trim(), AiTimeoutSeconds,
             IsAiAssessmentRecorded);
@@ -198,7 +221,7 @@ public class VWAPTradeAI : Robot
 
         // OnBar fires as a new bar opens, so the last closed bar is Count - 2 (as in SignalDetector).
         return new AiTrendFilter(_trendAssessmentClient.AssessAsync, BeginInvokeOnMainThread, () => Bars.Count - 2, _orderExecutor.TryEnter,
-            BuildTrendAssessmentRecorder(), Log);
+            recorder, Log);
     }
 
     // The AI's picture waits, across the ticks of the bar, until the chart shows the signal's bar.
@@ -214,8 +237,9 @@ public class VWAPTradeAI : Robot
 
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var recorder = new TrendAssessmentRecorder(ResetAiAssessmentsOnStart, TrendAssessmentRecorder.DirectoryIn(documentsPath),
-            SymbolName);
-        Print("****AI assessment folder: {0} | ClearedOnStart: {1}", recorder.DirectoryPath, ResetAiAssessmentsOnStart);
+            TrendAssessmentRecorder.EvalDirectoryIn(documentsPath), SymbolName);
+        Print("****AI assessment folder: {0} | ClearedOnStart: {1} | Shift+click a signal to move its recording to {2}",
+            recorder.DirectoryPath, ResetAiAssessmentsOnStart, recorder.EvalDirectoryPath);
         return recorder;
     }
 

@@ -296,7 +296,24 @@ and the symbol. The `.png` is exactly what the model was sent. The `.json` says 
 
 The files accumulate across runs. With `启动时清空AI评估截图` on, the bot deletes them at every start
 instead, so copy the folder first if you want to keep them. It is the material for judging the model: look at a
-picture, decide what you would have answered, and compare. When the model is wrong, follow
+picture, decide what you would have answered, and compare.
+
+**Picking the ones to label.** Instead of finding each pair by hand, **Shift+click** the signal's
+marker (or its candle) on the chart while the bot runs. Its `.png` and `.json` move to
+`~/Documents/TrendAssessmentEval`, and the log says so:
+
+```text
+AI assessment moved to the evaluation set | /Users/<you>/Documents/TrendAssessmentEval/20260930-220500_XAUUSD_7f3c2a9e.png
+AI assessment not moved | Bar: 2026-09-30 22:10 | No AI recording of a signal on this bar in this run
+```
+
+- It needs `启用AI趋势过滤` and `保存AI评估截图` on, and only reaches the signals of the running bot:
+  after a restart, or once a visual backtest has ended, the bot no longer answers clicks. In a
+  visual backtest, pause it, Shift+click, then resume.
+- A signal whose answer has not arrived yet has nothing to move; click again after its
+  `AI assessment recorded` line.
+- `Already in the evaluation set` means it was moved before. Nothing there is ever overwritten,
+  and `labels.csv` is not touched: you still write the label. When the model is wrong, follow
 [Correcting the model when it is wrong](https://github.com/richardgong1987/TrendAssessmentModel/blob/main/docs/CORRECTING_THE_MODEL.md)
 (`docs/CORRECTING_THE_MODEL.md` in the TrendAssessmentModel project).
 

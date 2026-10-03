@@ -217,6 +217,16 @@ training data. With `启动时清空AI评估截图` on, a run that records delet
 `.json` files at start-up; other files in the folder stay. A failed write is logged and never
 affects trading.
 
+**Picking a recording for the evaluation set.** A Shift+click on the chart moves the recording of
+the signal on the clicked bar into `~/Documents/TrendAssessmentEval`, the hand-labelled set
+(cTrader gives a cBot no right-click menu, so a modifier click stands in for one). The Robot turns
+the click into the nearest bar's time; `TrendAssessmentRecorder.MoveToEvalSet` finds the files it
+wrote for that signal in this run and moves both, or neither when either is missing or already in
+the evaluation folder. It is looked up in memory, not by file name, because the folder may also
+hold an earlier run's recording of the same bar. The marker is not made selectable for this: the
+cAlgo API documents that an interactive chart object is removed when the cBot stops, and the
+markers are meant to stay.
+
 **Post-entry `EntryChartshots`.** Unchanged by the filter: one numbered picture per opened trade,
 `1.png`, `2.png`, and so on.
 

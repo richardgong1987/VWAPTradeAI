@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -13,12 +15,18 @@ namespace cAlgo.Robots;
 //   20260930-220500_XAUUSD_7f3c2a9e.png
 //   20260930-220500_XAUUSD_7f3c2a9e.json
 //
+// A recording worth labelling is moved, on request, into the hand-picked evaluation set
+// (TrendAssessmentEval), found by its signal's bar time. Only this run's recordings can be: the
+// folder may also hold an earlier run's recording of the same bar, and only the run that wrote a
+// file knows which one belongs to the marker on its chart.
+//
 // It is a separate thing from the numbered pictures of opened trades (ChartshotFolder), which are
 // taken after the entry as a trade record.
 //
 // Pure: no cAlgo dependency, unit tested.
 public class TrendAssessmentRecorder {
     private const string FolderName = "TrendAssessment";
+    private const string EvalFolderName = "TrendAssessmentEval";
     private const string PictureExtension = ".png";
     private const string JsonExtension = ".json";
 
@@ -26,10 +34,14 @@ public class TrendAssessmentRecorder {
 
     private readonly string _symbol;
 
+    // A bar has at most one signal, so its time identifies the signal's recording.
+    private readonly Dictionary<DateTime, string> _fileNameBySignalBarTime = new();
+
     // resetOnStart: delete the earlier runs' records, so the folder holds only this run's
-    // assessments. Off, the records accumulate across runs.
-    public TrendAssessmentRecorder(bool resetOnStart, string directoryPath, string symbol) {
+    // assessments. Off, the records accumulate across runs. The evaluation folder is never cleared.
+    public TrendAssessmentRecorder(bool resetOnStart, string directoryPath, string evalDirectoryPath, string symbol) {
         DirectoryPath = directoryPath;
+        EvalDirectoryPath = evalDirectoryPath;
         _symbol = symbol;
         Directory.CreateDirectory(directoryPath);
 
@@ -41,7 +53,13 @@ public class TrendAssessmentRecorder {
         return Path.Combine(documentsPath, FolderName);
     }
 
+    public static string EvalDirectoryIn(string documentsPath) {
+        return Path.Combine(documentsPath, EvalFolderName);
+    }
+
     public string DirectoryPath { get; }
+
+    public string EvalDirectoryPath { get; }
 
     // Writes both files and returns the picture's path.
     public string Save(TrendAssessmentRecordModel record, byte[] chartPng) {
@@ -52,7 +70,33 @@ public class TrendAssessmentRecorder {
 
         IoFile.WriteAllBytes(picturePath, chartPng);
         IoFile.WriteAllBytes(Path.Combine(DirectoryPath, name + JsonExtension), ToJson(record));
+        _fileNameBySignalBarTime[record.Signal.BarTime] = name;
         return picturePath;
+    }
+
+    // Moves the recording of the signal on that bar into the evaluation set, picture and JSON
+    // together, and returns the picture's new path. When either file cannot move, neither does,
+    // and the IOException says why; nothing in the evaluation set is ever overwritten.
+    public string MoveToEvalSet(DateTime signalBarTime) {
+        if (!_fileNameBySignalBarTime.TryGetValue(signalBarTime, out string name))
+            throw new FileNotFoundException("No AI recording of a signal on this bar in this run");
+
+        string[] fileNames = { name + PictureExtension, name + JsonExtension };
+
+        foreach (string fileName in fileNames) {
+            if (IoFile.Exists(Path.Combine(EvalDirectoryPath, fileName)))
+                throw new IOException($"Already in the evaluation set: {Path.Combine(EvalDirectoryPath, fileName)}");
+
+            if (!IoFile.Exists(Path.Combine(DirectoryPath, fileName)))
+                throw new FileNotFoundException($"The recording is no longer there: {Path.Combine(DirectoryPath, fileName)}");
+        }
+
+        Directory.CreateDirectory(EvalDirectoryPath);
+
+        foreach (string fileName in fileNames)
+            IoFile.Move(Path.Combine(DirectoryPath, fileName), Path.Combine(EvalDirectoryPath, fileName));
+
+        return Path.Combine(EvalDirectoryPath, fileNames[0]);
     }
 
     // Only the two kinds of file Save writes; anything else in the folder is not ours, and stays.

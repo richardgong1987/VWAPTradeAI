@@ -94,7 +94,7 @@ The layers are right; keep them and don't add more. One folder, one responsibili
 | `TradeLog/` | Trade CSV (`TradeCsvColumns`, `TradeCsvLogger`, `TradeCsvFile`, `CsvCell`, `TradeResultR`). |
 | `Chart/` | `VwapLines`, `SignalMarkers`. Drawing only. |
 | `Chartshots/` | `EntryChartshots` (takes `Chart.TakeChartshot()` per entry), `ChartshotFolder` (`~/Documents/TakeChartshot`, numbered `1.png`, `2.png`, …; pure), and for the AI: `AiChartshots` (when the picture is taken; pure), the port `IChartCamera` and its adapter `CAlgoChartCamera`. |
-| `TrendAssessment/` | The optional AI trend filter, all pure: `AiTrendFilter` (the flow), `TrendDirectionGate` (the rule), `TrendAssessmentClient` and `TrendAssessmentReply` (the service's HTTP contract), `TrendAssessmentRecorder` (`~/Documents/TrendAssessment`). |
+| `TrendAssessment/` | The optional AI trend filter, all pure: `AiTrendFilter` (the flow), `TrendDirectionGate` (the rule), `TrendAssessmentClient` and `TrendAssessmentReply` (the service's HTTP contract), `TrendAssessmentRecorder` (`~/Documents/TrendAssessment`, and on a Shift+click on a signal, moving its pair to `~/Documents/TrendAssessmentEval`). |
 | `Models/` | Every data type, suffixed `Model`. Pure data only. |
 
 The design patterns in use (Composition Root, Adapter, Observer, Strategy as a table), where each
@@ -178,6 +178,7 @@ dotnet test "tests/VWAPTradeAI.Tests/VWAPTradeAI.Tests.csproj"     # tests only
   - `release_trading_reports` for live
   - `TakeChartshot` for the entry screenshots, whatever the running mode
   - `TrendAssessment` for the AI's input pictures and answers, only with `保存AI评估截图` on
+  - `TrendAssessmentEval` for the pairs picked from it by a Shift+click on a signal
   
   The trade CSV is `VWAPTradeAIs.csv` by default. If cTrader reports a sync conflict over full
   access, keep the local source.

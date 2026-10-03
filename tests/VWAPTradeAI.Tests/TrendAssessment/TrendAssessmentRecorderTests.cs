@@ -7,21 +7,32 @@ using Xunit;
 
 namespace VWAPTradeAI.Tests.TrendAssessment {
     // The evaluation data set: the exact picture the AI was sent, and what came of it, side by side.
-    // A reset at start-up clears the earlier runs' records, and only those.
+    // A reset at start-up clears the earlier runs' records, and only those. A recording picked for
+    // labelling moves to the evaluation folder as a pair, or not at all.
     public class TrendAssessmentRecorderTests : IDisposable {
         private const string RequestId = "7f3c2a9e5d414b0fa1c6e2b8d4a90c13";
+        private const string RecordingName = "20260918-130000_XAUUSD_7f3c2a9e";
+        private static readonly DateTime SignalBarTime = new(2026, 9, 18, 13, 0, 0, DateTimeKind.Utc);
         private static readonly byte[] ChartPng = { 0x89, 0x50, 0x4E, 0x47, 1, 2, 3 };
 
         private readonly string _directory = Path.Combine(Path.GetTempPath(), "TrendAssessmentRecorderTests-" + Guid.NewGuid());
+        private readonly string _evalDirectory = Path.Combine(Path.GetTempPath(), "TrendAssessmentRecorderTests-eval-" + Guid.NewGuid());
 
         public void Dispose() {
-            if (Directory.Exists(_directory))
-                Directory.Delete(_directory, recursive: true);
+            foreach (string directory in new[] { _directory, _evalDirectory })
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, recursive: true);
         }
 
-        private TrendAssessmentRecorder Recorder(bool resetOnStart = false) => new(resetOnStart, _directory, "XAUUSD");
+        private TrendAssessmentRecorder Recorder(bool resetOnStart = false) => new(resetOnStart, _directory, _evalDirectory, "XAUUSD");
 
-        private string[] FileNames() => Directory.GetFiles(_directory).Select(Path.GetFileName).OrderBy(name => name).ToArray();
+        private string[] FileNames() => FileNamesIn(_directory);
+
+        private static string[] FileNamesIn(string directory) => Directory.Exists(directory)
+            ? Directory.GetFiles(directory).Select(Path.GetFileName).OrderBy(name => name).ToArray()
+            : Array.Empty<string>();
+
+        private static TrendAssessmentRecordModel Passed() => Record(TestAssessment.Of(TrendModel.Up, DailyVwapDirectionModel.Rising));
 
         private static TrendAssessmentRecordModel Record(TrendAssessmentResultModel assessment, string gateRejectReason = null,
             bool isOrderPlaced = true) {
@@ -126,6 +137,78 @@ namespace VWAPTradeAI.Tests.TrendAssessment {
             Recorder(resetOnStart: true);
 
             Assert.Equal(new[] { "notes.txt" }, FileNames());
+        }
+
+        [Fact]
+        public void the_evaluation_folder_is_trendassessmenteval_under_documents() {
+            Assert.Equal(Path.Combine("/docs", "TrendAssessmentEval"), TrendAssessmentRecorder.EvalDirectoryIn("/docs"));
+        }
+
+        [Fact]
+        public void a_picked_signal_moves_its_picture_and_json_to_the_evaluation_folder() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+
+            string picturePath = recorder.MoveToEvalSet(SignalBarTime);
+
+            Assert.Equal(Path.Combine(_evalDirectory, RecordingName + ".png"), picturePath);
+            Assert.Equal(ChartPng, File.ReadAllBytes(picturePath));
+            Assert.Equal(new[] { RecordingName + ".json", RecordingName + ".png" }, FileNamesIn(_evalDirectory));
+            Assert.Empty(FileNames());
+        }
+
+        [Fact]
+        public void a_signal_recorded_by_an_earlier_run_cannot_be_moved() {
+            Recorder().Save(Passed(), ChartPng);
+            TrendAssessmentRecorder restarted = Recorder();
+
+            Assert.Throws<FileNotFoundException>(() => restarted.MoveToEvalSet(SignalBarTime));
+            Assert.Equal(new[] { RecordingName + ".json", RecordingName + ".png" }, FileNames());
+        }
+
+        [Fact]
+        public void a_bar_without_a_signal_moves_nothing() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+
+            Assert.Throws<FileNotFoundException>(() => recorder.MoveToEvalSet(SignalBarTime.AddMinutes(5)));
+            Assert.Empty(FileNamesIn(_evalDirectory));
+        }
+
+        [Fact]
+        public void picking_the_same_signal_twice_says_it_is_already_there() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+            recorder.MoveToEvalSet(SignalBarTime);
+
+            IOException error = Assert.Throws<IOException>(() => recorder.MoveToEvalSet(SignalBarTime));
+
+            Assert.StartsWith("Already in the evaluation set", error.Message);
+        }
+
+        [Fact]
+        public void a_file_of_the_same_name_in_the_evaluation_folder_is_never_overwritten_and_neither_file_moves() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+            Directory.CreateDirectory(_evalDirectory);
+            File.WriteAllText(Path.Combine(_evalDirectory, RecordingName + ".json"), "labelled by hand");
+
+            Assert.Throws<IOException>(() => recorder.MoveToEvalSet(SignalBarTime));
+
+            Assert.Equal("labelled by hand", File.ReadAllText(Path.Combine(_evalDirectory, RecordingName + ".json")));
+            Assert.Equal(new[] { RecordingName + ".json", RecordingName + ".png" }, FileNames());
+        }
+
+        [Fact]
+        public void a_recording_missing_its_json_leaves_the_picture_where_it_was() {
+            TrendAssessmentRecorder recorder = Recorder();
+            recorder.Save(Passed(), ChartPng);
+            File.Delete(Path.Combine(_directory, RecordingName + ".json"));
+
+            Assert.Throws<FileNotFoundException>(() => recorder.MoveToEvalSet(SignalBarTime));
+
+            Assert.Equal(new[] { RecordingName + ".png" }, FileNames());
+            Assert.Empty(FileNamesIn(_evalDirectory));
         }
     }
 }

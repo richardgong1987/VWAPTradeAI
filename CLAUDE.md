@@ -70,6 +70,10 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
   the handler returns;
 - per trade: `OrderExecutor.PositionOpened` → trade CSV entry row + a numbered chart screenshot
   (`EntryChartshots.Take`); `OrderExecutor.PositionClosed` → trade CSV close row.
+- per Shift+click on the chart, only with the AI filter and `保存AI评估截图` on: the clicked bar's
+  time → `TrendAssessmentRecorder.MoveToEvalSet`, which moves that signal's recorded picture and
+  JSON to `~/Documents/TrendAssessmentEval`. cTrader offers a cBot no right-click menu, so a
+  modifier click stands in for one.
 
 It holds no rules of its own; anything resembling a decision belongs in one of the classes below.
 
@@ -142,8 +146,10 @@ Each folder holds one responsibility; all data types live in `Models/` (suffixed
   backtest) does the same but waits for the answer, so the backtest pauses. `TrendAssessmentRecorder`
   (only with `保存AI评估截图` on) keeps the exact PNG and a JSON file per assessment under
   `~/Documents/TrendAssessment`; with `启动时清空AI评估截图` on (off by default) it deletes the
-  earlier runs' `.png` and `.json` files at start-up. This is a different picture from
-  `Chartshots/`: that one is taken after the entry, as a trade record.
+  earlier runs' `.png` and `.json` files at start-up. It remembers which files each of this run's
+  signals got, so `MoveToEvalSet` can move a picked signal's pair into the hand-picked evaluation
+  set `~/Documents/TrendAssessmentEval`: both files or neither, never overwriting. This is a
+  different picture from `Chartshots/`: that one is taken after the entry, as a trade record.
 - `Broker/` — the boundary to cTrader's trading API: the ports `IBroker` (clock, equity, quote,
   positions, market orders, closes) and `ISymbolModel` (symbol facts for sizing), and their cAlgo
   adapters `CAlgoBroker` and `CAlgoSymbolModel`, which translate and decide nothing. The adapters
