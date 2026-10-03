@@ -73,6 +73,25 @@ the AI filter on, `BuildAiTrendFilter` — and subscribes everything that follow
 
 It holds no rules of its own; anything resembling a decision belongs in one of the classes below.
 
+## One project, two repositories
+
+This cBot and the TrendAssessmentModel service (`~/PycharmProjects/TrendAssessmentModel`, Python,
+FastAPI in front of Ollama) are one project in two repositories: the service exists only to answer
+this cBot's AI trend filter. Treat a change as spanning both, and when it makes something on the
+other side stale, update that in the same task:
+
+- the HTTP contract (`POST /v1/assessments`, `POST /v1/warmup`, field names and values):
+  `TrendAssessment/TrendAssessmentClient.cs` and `TrendAssessmentReply.cs` here,
+  `src/trend_assessment/schemas.py` and `api.py` there;
+- what the AI's screenshot shows (`AiChartshots`, `SignalMarkers`) against what the prompt tells
+  the model to ignore (`src/trend_assessment/prompts.py`);
+- docs that name the other side: the service's `docs/CORRECTING_THE_MODEL.md` refers to this
+  cBot's `保存AI评估截图` and `启动时清空AI评估截图` switches and its `~/Documents/TrendAssessment`
+  recordings.
+
+Each repository is still checked and committed on its own: `./scripts/test.sh` here,
+`.venv/bin/pytest` there.
+
 ## Module map
 
 Each folder holds one responsibility; all data types live in `Models/` (suffixed `Model`):
